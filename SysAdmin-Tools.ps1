@@ -1,6 +1,6 @@
 # ==============================================================================
 # Script Name: SysAdmin-Tools.ps1
-# Description: Portable System Administration Wish Tools Platform
+# Description: Dynamic System Admin Platform (Pure Dynamic Dynamic Scan)
 # Author     : Designed by Trung Nguyen IT. All Rights Reserved.
 # ==============================================================================
 
@@ -14,7 +14,14 @@ function Test-IsAdmin {
 }
 
 # ------------------------------------------------------------------------------
-# 2. INITIALIZE ENVIRONMENT & MODULE DYNAMIC SCAN
+# 2. CONFIGURATION FOR REMOTE IN-MEMORY SCAN
+# ------------------------------------------------------------------------------
+$githubUser = "trungtdv4"   # Thay Username GitHub của anh
+$githubRepo = "SysAdmin-Tools"         # Thay Tên Repository của anh
+$branch     = "main"
+
+# ------------------------------------------------------------------------------
+# 3. ENVIRONMENT DETECTION & DYNAMIC MENU LOOP
 # ------------------------------------------------------------------------------
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
@@ -23,44 +30,60 @@ Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundCol
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Determine functions directory (support local and remote execution)
-$global:WorkingDir = if (Test-Path "D:\") { "D:\SysAdmin-Tools" } else { "C:\SysAdmin-Tools" }
-if (-not (Test-Path $global:WorkingDir)) {
-    New-Item -Path $global:WorkingDir -ItemType Directory | Out-Null
-}
-
-$functionsDir = Join-Path $PSScriptRoot "SysAdmin-Functions"
-if ([string]::IsNullOrEmpty($PSScriptRoot) -or (-not (Test-Path $functionsDir))) {
-    $functionsDir = Join-Path $global:WorkingDir "SysAdmin-Functions"
-    if (-not (Test-Path $functionsDir)) {
-        New-Item -Path $functionsDir -ItemType Directory | Out-Null
-    }
-}
-
 if (-not (Test-IsAdmin)) {
     Write-Host "[!] NOTICE: Running under Standard User Privileges." -ForegroundColor Yellow
     Write-Host "    Administrative functions will require elevation." -ForegroundColor DarkGray
     Write-Host ""
 }
 
-# ------------------------------------------------------------------------------
-# 3. DYNAMIC MENU LOOP
-# ------------------------------------------------------------------------------
+# Check if running in memory (irm | iex) or physical file
+$isInMemory = [string]::IsNullOrEmpty($PSScriptRoot)
+$localFunctionsDir = Join-Path $PSScriptRoot "SysAdmin-Functions"
+
 while ($true) {
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
     Write-Host "AVAILABLE SYSTEM ADMIN FUNCTIONS:" -ForegroundColor Cyan
 
-    # Dynamic scan for .ps1 files in SysAdmin-Functions
-    $scriptFiles = Get-ChildItem -Path $functionsDir -Filter "*.ps1" -ErrorAction SilentlyContinue | Sort-Object Name
+    $modulesList = @()
 
-    if (-not $scriptFiles -or $scriptFiles.Count -eq 0) {
-        Write-Host "[!] No function scripts (.ps1) found in: $functionsDir" -ForegroundColor Red
-        Write-Host "    Please add module scripts into the directory above." -ForegroundColor DarkGray
-        Write-Host ""
+    if ($isInMemory) {
+        # Fetch file list dynamically via GitHub REST API
+        $apiUrl = "https://api.github.com/repos/$githubUser/$githubRepo/contents/SysAdmin-Functions?ref=$branch"
+        try {
+            $apiResponse = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "PowerShell-SysAdmin-Tools" } -ErrorAction Stop
+            $remoteFiles = $apiResponse | Where-Object { $_.name -like "*.ps1" } | Sort-Object name
+
+            foreach ($file in $remoteFiles) {
+                $modulesList += [PSCustomObject]@{
+                    Name = ($file.name -replace '\.ps1$', '')
+                    Type = "Remote"
+                    Url  = $file.download_url
+                }
+            }
+        } catch {
+            Write-Host "[!] Error fetching module directory from GitHub API: $_" -ForegroundColor Red
+        }
+    } else {
+        # Scan local SysAdmin-Functions directory
+        if (Test-Path $localFunctionsDir) {
+            $localFiles = Get-ChildItem -Path $localFunctionsDir -Filter "*.ps1" -ErrorAction SilentlyContinue | Sort-Object Name
+            foreach ($file in $localFiles) {
+                $modulesList += [PSCustomObject]@{
+                    Name = $file.BaseName
+                    Type = "Local"
+                    Path = $file.FullName
+                }
+            }
+        }
+    }
+
+    # Render Menu
+    if (-not $modulesList -or $modulesList.Count -eq 0) {
+        Write-Host "[!] No function scripts (.ps1) found." -ForegroundColor Red
         Write-Host "  0. Exit Application" -ForegroundColor Gray
     } else {
-        for ($i = 0; $i -lt $scriptFiles.Count; $i++) {
-            Write-Host "  $($i + 1). $($scriptFiles[$i].BaseName)" -ForegroundColor White
+        for ($i = 0; $i -lt $modulesList.Count; $i++) {
+            Write-Host "  $($i + 1). $($modulesList[$i].Name)" -ForegroundColor White
         }
         Write-Host "  0. Exit Application" -ForegroundColor Gray
     }
@@ -77,13 +100,23 @@ while ($true) {
         Exit
     }
 
-    if ($selection -match '^\d+$' -and [int]$selection -le $scriptFiles.Count -and [int]$selection -gt 0) {
-        $selectedScript = $scriptFiles[[int]$selection - 1].FullName
+    if ($selection -match '^\d+$' -and [int]$selection -le $modulesList.Count -and [int]$selection -gt 0) {
+        $selectedModule = $modulesList[[int]$selection - 1]
         Write-Host ""
-        Write-Host ">>> Executing Module: $($scriptFiles[[int]$selection - 1].BaseName) <<<" -ForegroundColor Green
+        Write-Host ">>> Executing Module: $($selectedModule.Name) <<<" -ForegroundColor Green
         
-        # Execute module script
-        & $selectedScript
+        if ($selectedModule.Type -eq "Remote") {
+            try {
+                # Fetch code straight to RAM and execute
+                $scriptContent = Invoke-RestMethod -Uri $selectedModule.Url -ErrorAction Stop
+                Invoke-Expression $scriptContent
+            } catch {
+                Write-Host "[!] Error fetching module from GitHub Raw: $_" -ForegroundColor Red
+                Start-Sleep -Seconds 2
+            }
+        } else {
+            & $selectedModule.Path
+        }
     } else {
         Write-Host "[!] Invalid selection. Please try again!" -ForegroundColor Red
         Start-Sleep -Seconds 1
