@@ -1,6 +1,6 @@
 # ==============================================================================
 # Script Name: SysAdmin-Tools.ps1
-# Description: Portable System Administration Platform (Local Execution)
+# Description: Portable System Administration Platform
 # Author     : Designed by Trung Nguyen IT. All Rights Reserved.
 # ==============================================================================
 
@@ -23,7 +23,7 @@ if (-not (Test-IsAdmin)) {
     Write-Host ""
 }
 
-# Dynamic Local Scan
+# Dynamic Module Scan (Physical Local Path)
 $functionsDir = Join-Path $PSScriptRoot "SysAdmin-Functions"
 
 while ($true) {
