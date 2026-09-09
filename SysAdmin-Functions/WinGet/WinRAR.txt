@@ -1,0 +1,1 @@
+winget install --id RARLab.WinRAR -e --accept-package-agreements --accept-source-agreements
