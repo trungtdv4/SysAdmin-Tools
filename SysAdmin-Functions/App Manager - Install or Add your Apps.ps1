@@ -1,5 +1,5 @@
 # Module: Install your App.ps1
-# Description: Dynamic WinGet Local Package Installer with Online Search Fallback (Z Option)
+# Description: Dynamic WinGet Local Package Installer with Auto-Appending Agreements
 # Author     : Designed by Trung Nguyen IT. All Rights Reserved.
 
 if ($global:WorkingDir) { Set-Location $global:WorkingDir }
@@ -151,7 +151,6 @@ while ($true) {
         Write-Host "  (No local .txt package definitions found)" -ForegroundColor DarkGray
     }
 
-    # Always render Option Z at the end
     Write-Host "  Z. Other? (Search online repository)" -ForegroundColor Green
     Write-Host "  0. Return to Main Menu" -ForegroundColor Gray
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
@@ -196,6 +195,14 @@ while ($true) {
             if ([string]::IsNullOrWhiteSpace($cmdString)) {
                 Write-Host "[!] Error: File '$($selectedPackage.Name)' is empty!" -ForegroundColor Red
                 continue
+            }
+
+            # AUTO-APPEND MISSING AGREEMENTS PARAMETERS
+            if ($cmdString -notmatch '--accept-package-agreements') {
+                $cmdString += " --accept-package-agreements"
+            }
+            if ($cmdString -notmatch '--accept-source-agreements') {
+                $cmdString += " --accept-source-agreements"
             }
 
             Write-Host ""
