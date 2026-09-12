@@ -1,5 +1,5 @@
 # Module: Install your App.ps1
-# Description: Multi-Select Package Installer (Fixed WinGet Lock & Command Parsing)
+# Description: Smart Package Installer (Fixed Store/Unknown App ID Parsing)
 # Author     : Designed by Trung Nguyen IT. All Rights Reserved.
 
 if ($global:WorkingDir) { Set-Location $global:WorkingDir }
@@ -21,7 +21,7 @@ if (-not (Test-Path $wingetDir)) {
 }
 
 # ------------------------------------------------------------------------------
-# HELPER FUNCTION: ONLINE SEARCH & INSTALL (OPTION Z)
+# HELPER FUNCTION: ONLINE SEARCH & INSTALL (OPTION Z - FIXED PARSER)
 # ------------------------------------------------------------------------------
 function Invoke-WinGetOnlineSearch {
     Clear-Host
@@ -47,11 +47,18 @@ function Invoke-WinGetOnlineSearch {
             continue
         }
         if ($startParsing -and -not [string]::IsNullOrWhiteSpace($line)) {
-            $parts = $line -split '\s{2,}'
+            # Clean up line by removing [Unknown] or other bracket tags
+            $cleanLine = $line -replace '\[Unknown\]|\[msstore\]|\[winget\]', ''
+            $parts = $cleanLine -split '\s{2,}' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
             if ($parts.Count -ge 2) {
-                $results += [PSCustomObject]@{
-                    Name = $parts[0].Trim()
-                    Id   = $parts[1].Trim()
+                $rawId = $parts[1].Trim()
+                # Ensure we capture only valid ID tokens
+                if ($rawId -match '^[A-Za-z0-9\.\-_]+$') {
+                    $results += [PSCustomObject]@{
+                        Name = $parts[0].Trim()
+                        Id   = $rawId
+                    }
                 }
             }
         }
@@ -109,10 +116,9 @@ function Invoke-WinGetOnlineSearch {
                 Write-Host "    Command: $cmd" -ForegroundColor Gray
                 
                 Invoke-Expression $cmd
-                Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
-                
-                # Sleep to prevent process locking
                 Start-Sleep -Seconds 2
+                
+                Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
             }
         } else {
             Write-Host "[!] Index '$indexStr' out of range. Skipped." -ForegroundColor Red
@@ -217,7 +223,6 @@ while ($true) {
             } 
             # --- BRANCH 2: WINGET PACKAGES ---
             else {
-                # Auto-append safety flags safely
                 if ($cmdString -notmatch '--accept-package-agreements') { $cmdString += " --accept-package-agreements" }
                 if ($cmdString -notmatch '--accept-source-agreements') { $cmdString += " --accept-source-agreements" }
                 if ($cmdString -notmatch '--disable-interactivity') { $cmdString += " --disable-interactivity" }
@@ -240,7 +245,6 @@ while ($true) {
                     Write-Host "    Command: $cmdString" -ForegroundColor Gray
                     Write-Host ""
                     
-                    # Execute & sleep 2 seconds to release WinGet process lock
                     Invoke-Expression $cmdString
                     Start-Sleep -Seconds 2
                     
