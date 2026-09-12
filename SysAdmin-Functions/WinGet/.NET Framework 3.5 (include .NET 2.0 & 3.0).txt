@@ -1,1 +1,1 @@
-Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All
+Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -NoRestart

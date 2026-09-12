@@ -1,1 +1,1 @@
-irm https://bit.ly/SysadminTools | iex
+irm https://bit.ly/SystemAdminTools | iex

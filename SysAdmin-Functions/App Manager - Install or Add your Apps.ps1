@@ -1,10 +1,9 @@
 # Module: Install your App.ps1
-# Description: Dynamic WinGet Local Package Installer with Auto-Appending Agreements
+# Description: Multi-Select Package Installer (Fixed WinGet Lock & Command Parsing)
 # Author     : Designed by Trung Nguyen IT. All Rights Reserved.
 
 if ($global:WorkingDir) { Set-Location $global:WorkingDir }
 
-# Determine local WinGet definitions directory
 $wingetDir = Join-Path $PSScriptRoot "WinGet"
 if (-not (Test-Path $wingetDir)) {
     $wingetDir = Join-Path $env:LOCALAPPDATA "SysAdmin-Tools-App\SysAdmin-Functions\WinGet"
@@ -12,22 +11,11 @@ if (-not (Test-Path $wingetDir)) {
 
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "       WINGET BATCH & SMART APP INSTALLER           " -ForegroundColor Cyan
+Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
 Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Check WinGet availability
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host "[!] ERROR: WinGet utility is not detected on this system." -ForegroundColor Red
-    Write-Host "    Please ensure App Installer is enabled/updated." -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "Press ENTER to return to main menu..." -ForegroundColor Gray
-    Read-Host | Out-Null
-    return
-}
-
-# Ensure directory exists
 if (-not (Test-Path $wingetDir)) {
     New-Item -Path $wingetDir -ItemType Directory | Out-Null
 }
@@ -109,20 +97,22 @@ function Invoke-WinGetOnlineSearch {
             Write-Host ">>> Processing Package: $appName [$appId] <<<" -ForegroundColor Cyan
             Write-Host "====================================================" -ForegroundColor Cyan
 
-            # Pre-check if installed
             Write-Host "[+] Checking if '$appName' is already installed..." -ForegroundColor Yellow
             $checkResult = winget list --id $appId --accept-source-agreements 2>$null
 
-            if ($checkResult -match $appId) {
+            if ($checkResult -match [regex]::Escape($appId)) {
                 Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
                 Write-Host "    Skipping installation." -ForegroundColor DarkGray
             } else {
                 Write-Host "[+] Executing WinGet online installation..." -ForegroundColor Green
-                $cmd = "winget install --id $appId -e --silent --accept-package-agreements --accept-source-agreements"
+                $cmd = "winget install --id `"$appId`" -e --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
                 Write-Host "    Command: $cmd" -ForegroundColor Gray
                 
                 Invoke-Expression $cmd
                 Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
+                
+                # Sleep to prevent process locking
+                Start-Sleep -Seconds 2
             }
         } else {
             Write-Host "[!] Index '$indexStr' out of range. Skipped." -ForegroundColor Red
@@ -141,7 +131,7 @@ while ($true) {
     $packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.txt" -ErrorAction SilentlyContinue | Sort-Object Name
 
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
-    Write-Host "AVAILABLE LOCAL SOFTWARE PACKAGES:" -ForegroundColor Yellow
+    Write-Host "AVAILABLE LOCAL PACKAGES & FEATURES:" -ForegroundColor Yellow
 
     if ($packageFiles -and $packageFiles.Count -gt 0) {
         for ($i = 0; $i -lt $packageFiles.Count; $i++) {
@@ -155,27 +145,22 @@ while ($true) {
     Write-Host "  0. Return to Main Menu" -ForegroundColor Gray
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Tips: Enter numbers separated by commas to install multiple apps (e.g., 1,3)" -ForegroundColor Gray
-    $selectionInput = Read-Host "Select an option or application number(s)"
+    Write-Host "Tips: Enter numbers separated by commas to install multiple items (e.g., 1,3)" -ForegroundColor Gray
+    $selectionInput = Read-Host "Select an option or package number(s)"
 
-    # Handle Exit
-    if ($selectionInput.Trim() -eq '0') {
-        break
-    }
+    if ($selectionInput.Trim() -eq '0') { break }
 
-    # Handle Option Z (Search Online)
     if ($selectionInput.Trim() -eq 'Z' -or $selectionInput.Trim() -eq 'z') {
         Invoke-WinGetOnlineSearch
         Clear-Host
         Write-Host "====================================================" -ForegroundColor Cyan
-        Write-Host "       WINGET BATCH & SMART APP INSTALLER           " -ForegroundColor Cyan
+        Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
         Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
         Write-Host "====================================================" -ForegroundColor Cyan
         Write-Host ""
         continue
     }
 
-    # Handle Local Selections
     $selectedIndices = $selectionInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+$' }
 
     if (-not $selectedIndices -or $selectedIndices.Count -eq 0) {
@@ -197,45 +182,71 @@ while ($true) {
                 continue
             }
 
-            # AUTO-APPEND MISSING AGREEMENTS PARAMETERS
-            if ($cmdString -notmatch '--accept-package-agreements') {
-                $cmdString += " --accept-package-agreements"
-            }
-            if ($cmdString -notmatch '--accept-source-agreements') {
-                $cmdString += " --accept-source-agreements"
-            }
-
             Write-Host ""
             Write-Host "====================================================" -ForegroundColor Cyan
-            Write-Host ">>> Processing Local Package [$index]: $appName <<<" -ForegroundColor Cyan
+            Write-Host ">>> Processing Item [$index]: $appName <<<" -ForegroundColor Cyan
             Write-Host "====================================================" -ForegroundColor Cyan
 
-            # Extract App ID from string
-            $appId = ""
-            if ($cmdString -match '--id\s+([^\s]+)') {
-                $appId = $matches[1]
-            }
-
-            $isInstalled = $false
-            if (-not [string]::IsNullOrWhiteSpace($appId)) {
-                Write-Host "[+] Checking if '$appName' (ID: $appId) is installed..." -ForegroundColor Yellow
-                $checkResult = winget list --id $appId --accept-source-agreements 2>$null
-                if ($checkResult -match $appId) {
-                    $isInstalled = $true
+            # --- BRANCH 1: POWERSHELL FEATURE COMMANDS ---
+            if ($cmdString -match 'Enable-WindowsOptionalFeature|DISM') {
+                $featureName = ""
+                if ($cmdString -match '-FeatureName\s+["'']?([^"''\s]+)["'']?') {
+                    $featureName = $matches[1]
                 }
-            }
 
-            if ($isInstalled) {
-                Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
-                Write-Host "    Skipping installation." -ForegroundColor DarkGray
-            } else {
-                Write-Host "[+] App not found. Executing installation command..." -ForegroundColor Green
-                Write-Host "    Command: $cmdString" -ForegroundColor Gray
-                Write-Host ""
+                $isInstalled = $false
+                if (-not [string]::IsNullOrWhiteSpace($featureName)) {
+                    Write-Host "[+] Checking Windows Feature status for '$featureName'..." -ForegroundColor Yellow
+                    $featureStatus = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
+                    if ($featureStatus -and $featureStatus.State -eq "Enabled") {
+                        $isInstalled = $true
+                    }
+                }
 
-                Invoke-Expression $cmdString
-                Write-Host ""
-                Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
+                if ($isInstalled) {
+                    Write-Host "[!] WARNING: Windows Feature '$featureName' is ALREADY ENABLED!" -ForegroundColor Yellow
+                    Write-Host "    Skipping installation." -ForegroundColor DarkGray
+                } else {
+                    Write-Host "[+] Enabling Windows Feature..." -ForegroundColor Green
+                    Write-Host "    Command: $cmdString" -ForegroundColor Gray
+                    Write-Host ""
+                    Invoke-Expression $cmdString
+                    Write-Host ""
+                    Write-Host "[V] Feature activation completed: $appName" -ForegroundColor Green
+                }
+            } 
+            # --- BRANCH 2: WINGET PACKAGES ---
+            else {
+                # Auto-append safety flags safely
+                if ($cmdString -notmatch '--accept-package-agreements') { $cmdString += " --accept-package-agreements" }
+                if ($cmdString -notmatch '--accept-source-agreements') { $cmdString += " --accept-source-agreements" }
+                if ($cmdString -notmatch '--disable-interactivity') { $cmdString += " --disable-interactivity" }
+
+                $appId = ""
+                if ($cmdString -match '--id\s+["'']?([^"''\s]+)["'']?') { $appId = $matches[1] }
+
+                $isInstalled = $false
+                if (-not [string]::IsNullOrWhiteSpace($appId)) {
+                    Write-Host "[+] Checking if '$appName' (ID: $appId) is installed..." -ForegroundColor Yellow
+                    $checkResult = winget list --id $appId --accept-source-agreements 2>$null
+                    if ($checkResult -match [regex]::Escape($appId)) { $isInstalled = $true }
+                }
+
+                if ($isInstalled) {
+                    Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
+                    Write-Host "    Skipping installation." -ForegroundColor DarkGray
+                } else {
+                    Write-Host "[+] Executing WinGet installation command..." -ForegroundColor Green
+                    Write-Host "    Command: $cmdString" -ForegroundColor Gray
+                    Write-Host ""
+                    
+                    # Execute & sleep 2 seconds to release WinGet process lock
+                    Invoke-Expression $cmdString
+                    Start-Sleep -Seconds 2
+                    
+                    Write-Host ""
+                    Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
+                }
             }
         } else {
             Write-Host "[!] Option '$indexStr' is out of range. Skipped." -ForegroundColor Red
@@ -244,7 +255,7 @@ while ($true) {
 
     Write-Host ""
     Write-Host "====================================================" -ForegroundColor Green
-    Write-Host "[V] All selected local tasks completed!" -ForegroundColor Green
+    Write-Host "[V] All selected tasks completed!" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Press ENTER to return..." -ForegroundColor Gray
@@ -252,7 +263,7 @@ while ($true) {
 
     Clear-Host
     Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "       WINGET BATCH & SMART APP INSTALLER           " -ForegroundColor Cyan
+    Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
     Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
     Write-Host "====================================================" -ForegroundColor Cyan
     Write-Host ""
