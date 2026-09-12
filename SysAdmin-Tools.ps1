@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script Name: SysAdmin-Tools.ps1
 # Description: Portable System Administration Platform
-# Author     : Designed by Trung Nguyen IT. All Rights Reserved.
+# Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
 # ==============================================================================
 
 function Test-IsAdmin {
@@ -11,10 +11,10 @@ function Test-IsAdmin {
 }
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM   " -ForegroundColor Cyan
-Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor Yellow
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM       " -ForegroundColor Cyan
+Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor Yellow
+Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-IsAdmin)) {
@@ -56,7 +56,7 @@ while ($true) {
         }
 
         Write-Host "Thank you for using SysAdmin Tools! Goodbye." -ForegroundColor Green
-        Write-Host "Designed by Trung Nguyen IT. All Rights Reserved." -ForegroundColor Yellow
+        Write-Host "Designed by trungtdv4@gmail.com. All Rights Reserved." -ForegroundColor Yellow
         Start-Sleep -Seconds 1
         Exit
     }
@@ -73,9 +73,9 @@ while ($true) {
     }
     
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM   " -ForegroundColor Cyan
-    Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor Yellow
-    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM       " -ForegroundColor Cyan
+    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor Yellow
+    Write-Host "========================================================" -ForegroundColor Cyan
     Write-Host ""
 }

@@ -1,6 +1,6 @@
 # ==============================================================================
 # File: Setup.ps1 (Remote Entry Point / Loader)
-# Author: Designed by Trung Nguyen IT. All Rights Reserved.
+# Author: Designed by trungtdv4@gmail.com. All Rights Reserved.
 # ==============================================================================
 $githubUser = "trungtdv4"   # Thay Username GitHub của anh
 $githubRepo = "SysAdmin-Tools"         # Thay Tên Repository của anh
@@ -11,10 +11,10 @@ $zipPath    = Join-Path $env:TEMP "sysadmin-tools.zip"
 $zipUrl     = "https://github.com/$githubUser/$githubRepo/archive/refs/heads/$branch.zip"
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "         SYSADMIN TOOLS - SETUP LOADER              " -ForegroundColor Cyan
-Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor Yellow
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "             SYSADMIN TOOLS - SETUP LOADER              " -ForegroundColor Cyan
+Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor Yellow
+Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "[+] Downloading application package from GitHub..." -ForegroundColor Yellow

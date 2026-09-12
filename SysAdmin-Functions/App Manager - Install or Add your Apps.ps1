@@ -1,6 +1,6 @@
 # Module: Install your App.ps1
 # Description: Smart Package Installer (Fixed Store/Unknown App ID Parsing)
-# Author     : Designed by Trung Nguyen IT. All Rights Reserved.
+# Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
 
 if ($global:WorkingDir) { Set-Location $global:WorkingDir }
 
@@ -10,10 +10,10 @@ if (-not (Test-Path $wingetDir)) {
 }
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "           SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
+Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
+Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-Path $wingetDir)) {
@@ -25,10 +25,10 @@ if (-not (Test-Path $wingetDir)) {
 # ------------------------------------------------------------------------------
 function Invoke-WinGetOnlineSearch {
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "     WINGET ONLINE REPOSITORY SEARCH & INSTALL      " -ForegroundColor Cyan
-    Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "        WINGET ONLINE REPOSITORY SEARCH & INSTALL       " -ForegroundColor Cyan
+    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
+    Write-Host "========================================================" -ForegroundColor Cyan
     Write-Host ""
 
     $query = Read-Host "Enter software name to search online (or ENTER to cancel)"
@@ -159,10 +159,10 @@ while ($true) {
     if ($selectionInput.Trim() -eq 'Z' -or $selectionInput.Trim() -eq 'z') {
         Invoke-WinGetOnlineSearch
         Clear-Host
-        Write-Host "====================================================" -ForegroundColor Cyan
-        Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-        Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host "           SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
+        Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
+        Write-Host "========================================================" -ForegroundColor Cyan
         Write-Host ""
         continue
     }
@@ -266,9 +266,9 @@ while ($true) {
     Read-Host | Out-Null
 
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-    Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "          SMART PACKAGE & FEATURE INSTALLER             " -ForegroundColor Cyan
+    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
+    Write-Host "========================================================" -ForegroundColor Cyan
     Write-Host ""
 }

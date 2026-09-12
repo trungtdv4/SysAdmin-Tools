@@ -2,10 +2,10 @@
 # Description: Generates and opens HTML Battery Health Report via powercfg
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "           LAPTOP BATTERY HEALTH REPORT             " -ForegroundColor Cyan
-Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "=======================================================" -ForegroundColor Cyan
+Write-Host "                  BATTERY HEALTH REPORT                " -ForegroundColor Cyan
+Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved." -ForegroundColor DarkGray
+Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if physical battery exists

@@ -2,10 +2,10 @@
 # Description: Fetches detailed CPU, RAM, Disk, VGA, and Network/Wi-Fi specifications
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "           SYSTEM HARDWARE INFORMATION              " -ForegroundColor Cyan
-Write-Host "  Designed by Trung Nguyen IT. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "               SYSTEM HARDWARE INFORMATION              " -ForegroundColor Cyan
+Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
+Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[+] Fetching hardware specifications, please wait..." -ForegroundColor Yellow
 
