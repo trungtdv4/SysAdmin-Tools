@@ -1,5 +1,5 @@
 # Module: Install your App.ps1
-# Description: Smart Package Installer (Fixed Store/Unknown App ID Parsing)
+# Description: Smart Package Installer (Supports .txt WinGet & Custom .ps1 Installers)
 # Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
 
 if ($global:WorkingDir) { Set-Location $global:WorkingDir }
@@ -10,10 +10,10 @@ if (-not (Test-Path $wingetDir)) {
 }
 
 Clear-Host
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "           SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
+Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "          SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
 Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-Path $wingetDir)) {
@@ -21,14 +21,14 @@ if (-not (Test-Path $wingetDir)) {
 }
 
 # ------------------------------------------------------------------------------
-# HELPER FUNCTION: ONLINE SEARCH & INSTALL (OPTION Z - FIXED PARSER)
+# HELPER FUNCTION: ONLINE SEARCH & INSTALL (OPTION Z)
 # ------------------------------------------------------------------------------
 function Invoke-WinGetOnlineSearch {
     Clear-Host
-    Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "        WINGET ONLINE REPOSITORY SEARCH & INSTALL       " -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "        WINGET ONLINE REPOSITORY SEARCH & INSTALL      " -ForegroundColor Cyan
     Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
     Write-Host ""
 
     $query = Read-Host "Enter software name to search online (or ENTER to cancel)"
@@ -47,13 +47,11 @@ function Invoke-WinGetOnlineSearch {
             continue
         }
         if ($startParsing -and -not [string]::IsNullOrWhiteSpace($line)) {
-            # Clean up line by removing [Unknown] or other bracket tags
             $cleanLine = $line -replace '\[Unknown\]|\[msstore\]|\[winget\]', ''
             $parts = $cleanLine -split '\s{2,}' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
             if ($parts.Count -ge 2) {
                 $rawId = $parts[1].Trim()
-                # Ensure we capture only valid ID tokens
                 if ($rawId -match '^[A-Za-z0-9\.\-_]+$') {
                     $results += [PSCustomObject]@{
                         Name = $parts[0].Trim()
@@ -134,17 +132,19 @@ function Invoke-WinGetOnlineSearch {
 # MAIN LOCAL MENU LOOP
 # ------------------------------------------------------------------------------
 while ($true) {
-    $packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.txt" -ErrorAction SilentlyContinue | Sort-Object Name
+    # Scan both .txt and .ps1 installer files inside WinGet folder
+    $packageFiles = Get-ChildItem -Path $wingetDir -Include "*.txt", "*.ps1" -Recurse:$false -ErrorAction SilentlyContinue | Sort-Object Name
 
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
-    Write-Host "AVAILABLE LOCAL PACKAGES & FEATURES:" -ForegroundColor Yellow
+    Write-Host "AVAILABLE LOCAL PACKAGES & CUSTOM INSTALLERS:" -ForegroundColor Yellow
 
     if ($packageFiles -and $packageFiles.Count -gt 0) {
         for ($i = 0; $i -lt $packageFiles.Count; $i++) {
-            Write-Host "  $($i + 1). $($packageFiles[$i].BaseName)" -ForegroundColor White
+            $extTag = if ($packageFiles[$i].Extension -eq ".ps1") { " [Custom Script]" } else { "" }
+            Write-Host "  $($i + 1). $($packageFiles[$i].BaseName)$extTag" -ForegroundColor White
         }
     } else {
-        Write-Host "  (No local .txt package definitions found)" -ForegroundColor DarkGray
+        Write-Host "  (No local .txt or .ps1 package definitions found)" -ForegroundColor DarkGray
     }
 
     Write-Host "  Z. Other? (Search online repository)" -ForegroundColor Green
@@ -159,10 +159,10 @@ while ($true) {
     if ($selectionInput.Trim() -eq 'Z' -or $selectionInput.Trim() -eq 'z') {
         Invoke-WinGetOnlineSearch
         Clear-Host
-        Write-Host "========================================================" -ForegroundColor Cyan
-        Write-Host "           SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host "            SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
         Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
         Write-Host ""
         continue
     }
@@ -181,75 +181,87 @@ while ($true) {
         if ($packageFiles -and $index -gt 0 -and $index -le $packageFiles.Count) {
             $selectedPackage = $packageFiles[$index - 1]
             $appName = $selectedPackage.BaseName
-            $cmdString = (Get-Content -Path $selectedPackage.FullName -Raw).Trim()
-
-            if ([string]::IsNullOrWhiteSpace($cmdString)) {
-                Write-Host "[!] Error: File '$($selectedPackage.Name)' is empty!" -ForegroundColor Red
-                continue
-            }
 
             Write-Host ""
             Write-Host "====================================================" -ForegroundColor Cyan
             Write-Host ">>> Processing Item [$index]: $appName <<<" -ForegroundColor Cyan
             Write-Host "====================================================" -ForegroundColor Cyan
 
-            # --- BRANCH 1: POWERSHELL FEATURE COMMANDS ---
-            if ($cmdString -match 'Enable-WindowsOptionalFeature|DISM') {
-                $featureName = ""
-                if ($cmdString -match '-FeatureName\s+["'']?([^"''\s]+)["'']?') {
-                    $featureName = $matches[1]
-                }
-
-                $isInstalled = $false
-                if (-not [string]::IsNullOrWhiteSpace($featureName)) {
-                    Write-Host "[+] Checking Windows Feature status for '$featureName'..." -ForegroundColor Yellow
-                    $featureStatus = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
-                    if ($featureStatus -and $featureStatus.State -eq "Enabled") {
-                        $isInstalled = $true
-                    }
-                }
-
-                if ($isInstalled) {
-                    Write-Host "[!] WARNING: Windows Feature '$featureName' is ALREADY ENABLED!" -ForegroundColor Yellow
-                    Write-Host "    Skipping installation." -ForegroundColor DarkGray
-                } else {
-                    Write-Host "[+] Enabling Windows Feature..." -ForegroundColor Green
-                    Write-Host "    Command: $cmdString" -ForegroundColor Gray
-                    Write-Host ""
-                    Invoke-Expression $cmdString
-                    Write-Host ""
-                    Write-Host "[V] Feature activation completed: $appName" -ForegroundColor Green
-                }
-            } 
-            # --- BRANCH 2: WINGET PACKAGES ---
+            # --- BRANCH 1: CUSTOM POWERSHELL SCRIPT (.ps1) ---
+            if ($selectedPackage.Extension -eq ".ps1") {
+                Write-Host "[+] Executing Custom Script Installer: $($selectedPackage.Name)" -ForegroundColor Green
+                Write-Host ""
+                & $selectedPackage.FullName
+                Write-Host ""
+                Write-Host "[V] Finished Custom Script execution for: $appName" -ForegroundColor Green
+            }
+            # --- BRANCH 2: TEXT DEFINITION FILES (.txt) ---
             else {
-                if ($cmdString -notmatch '--accept-package-agreements') { $cmdString += " --accept-package-agreements" }
-                if ($cmdString -notmatch '--accept-source-agreements') { $cmdString += " --accept-source-agreements" }
-                if ($cmdString -notmatch '--disable-interactivity') { $cmdString += " --disable-interactivity" }
+                $cmdString = (Get-Content -Path $selectedPackage.FullName -Raw).Trim()
 
-                $appId = ""
-                if ($cmdString -match '--id\s+["'']?([^"''\s]+)["'']?') { $appId = $matches[1] }
-
-                $isInstalled = $false
-                if (-not [string]::IsNullOrWhiteSpace($appId)) {
-                    Write-Host "[+] Checking if '$appName' (ID: $appId) is installed..." -ForegroundColor Yellow
-                    $checkResult = winget list --id $appId --accept-source-agreements 2>$null
-                    if ($checkResult -match [regex]::Escape($appId)) { $isInstalled = $true }
+                if ([string]::IsNullOrWhiteSpace($cmdString)) {
+                    Write-Host "[!] Error: File '$($selectedPackage.Name)' is empty!" -ForegroundColor Red
+                    continue
                 }
 
-                if ($isInstalled) {
-                    Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
-                    Write-Host "    Skipping installation." -ForegroundColor DarkGray
-                } else {
-                    Write-Host "[+] Executing WinGet installation command..." -ForegroundColor Green
-                    Write-Host "    Command: $cmdString" -ForegroundColor Gray
-                    Write-Host ""
-                    
-                    Invoke-Expression $cmdString
-                    Start-Sleep -Seconds 2
-                    
-                    Write-Host ""
-                    Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
+                # Windows Feature Check
+                if ($cmdString -match 'Enable-WindowsOptionalFeature|DISM') {
+                    $featureName = ""
+                    if ($cmdString -match '-FeatureName\s+["'']?([^"''\s]+)["'']?') {
+                        $featureName = $matches[1]
+                    }
+
+                    $isInstalled = $false
+                    if (-not [string]::IsNullOrWhiteSpace($featureName)) {
+                        Write-Host "[+] Checking Windows Feature status for '$featureName'..." -ForegroundColor Yellow
+                        $featureStatus = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
+                        if ($featureStatus -and $featureStatus.State -eq "Enabled") {
+                            $isInstalled = $true
+                        }
+                    }
+
+                    if ($isInstalled) {
+                        Write-Host "[!] WARNING: Windows Feature '$featureName' is ALREADY ENABLED!" -ForegroundColor Yellow
+                        Write-Host "    Skipping installation." -ForegroundColor DarkGray
+                    } else {
+                        Write-Host "[+] Enabling Windows Feature..." -ForegroundColor Green
+                        Write-Host "    Command: $cmdString" -ForegroundColor Gray
+                        Write-Host ""
+                        Invoke-Expression $cmdString
+                        Write-Host ""
+                        Write-Host "[V] Feature activation completed: $appName" -ForegroundColor Green
+                    }
+                } 
+                # WinGet Command Check
+                else {
+                    if ($cmdString -notmatch '--accept-package-agreements') { $cmdString += " --accept-package-agreements" }
+                    if ($cmdString -notmatch '--accept-source-agreements') { $cmdString += " --accept-source-agreements" }
+                    if ($cmdString -notmatch '--disable-interactivity') { $cmdString += " --disable-interactivity" }
+
+                    $appId = ""
+                    if ($cmdString -match '--id\s+["'']?([^"''\s]+)["'']?') { $appId = $matches[1] }
+
+                    $isInstalled = $false
+                    if (-not [string]::IsNullOrWhiteSpace($appId)) {
+                        Write-Host "[+] Checking if '$appName' (ID: $appId) is installed..." -ForegroundColor Yellow
+                        $checkResult = winget list --id $appId --accept-source-agreements 2>$null
+                        if ($checkResult -match [regex]::Escape($appId)) { $isInstalled = $true }
+                    }
+
+                    if ($isInstalled) {
+                        Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
+                        Write-Host "    Skipping installation." -ForegroundColor DarkGray
+                    } else {
+                        Write-Host "[+] Executing WinGet installation command..." -ForegroundColor Green
+                        Write-Host "    Command: $cmdString" -ForegroundColor Gray
+                        Write-Host ""
+                        
+                        Invoke-Expression $cmdString
+                        Start-Sleep -Seconds 2
+                        
+                        Write-Host ""
+                        Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
+                    }
                 }
             }
         } else {
@@ -266,9 +278,9 @@ while ($true) {
     Read-Host | Out-Null
 
     Clear-Host
-    Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "          SMART PACKAGE & FEATURE INSTALLER             " -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "            SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
     Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
     Write-Host ""
 }
