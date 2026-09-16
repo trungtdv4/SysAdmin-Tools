@@ -4,10 +4,17 @@
 # Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
 # ==============================================================================
 
-# 1. Determine Source and Destination Paths
-$sourceDir = Join-Path $PSScriptRoot "EVKey"
-$destDir   = "C:\EVKey"
-$exePath   = Join-Path $destDir "EVKey64.exe"
+# 1. Determine Source and Destination Paths (Smart Relative Path Lookup)
+# Step 1: Try resolving relative path to SysAdmin-Resources
+$sourceDir = Join-Path $PSScriptRoot "..\SysAdmin-Resources\EVKey"
+
+# Step 2: Fallback lookup for AppData execution environment
+if (-not (Test-Path $sourceDir)) {
+    $sourceDir = Join-Path $env:LOCALAPPDATA "SysAdmin-Tools-App\SysAdmin-Resources\EVKey"
+}
+
+$destDir = "C:\EVKey"
+$exePath = Join-Path $destDir "EVKey64.exe"
 
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host "             EVKEY CUSTOM INSTALLER                 " -ForegroundColor Cyan
