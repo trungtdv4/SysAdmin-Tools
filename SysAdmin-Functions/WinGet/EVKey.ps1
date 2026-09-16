@@ -6,7 +6,7 @@
 
 # 1. Determine Source and Destination Paths (Smart Relative Path Lookup)
 # Step 1: Try resolving relative path to SysAdmin-Resources
-$sourceDir = Join-Path $PSScriptRoot "..\SysAdmin-Resources\EVKey"
+$sourceDir = Join-Path $PSScriptRoot "..\..\SysAdmin-Resources\EVKey"
 
 # Step 2: Fallback lookup for AppData execution environment
 if (-not (Test-Path $sourceDir)) {
