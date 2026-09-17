@@ -2,10 +2,11 @@
 # Description: Generates and opens HTML Battery Health Report via powercfg
 
 Clear-Host
-Write-Host "=======================================================" -ForegroundColor Cyan
-Write-Host "                  BATTERY HEALTH REPORT                " -ForegroundColor Cyan
-Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved." -ForegroundColor DarkGray
-Write-Host "=======================================================" -ForegroundColor Cyan
+Write-Host "========================================================================================================" -ForegroundColor Cyan
+Write-Host "                                       BATTERY HEALTH REPORT                                            " -ForegroundColor Cyan
+Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if physical battery exists

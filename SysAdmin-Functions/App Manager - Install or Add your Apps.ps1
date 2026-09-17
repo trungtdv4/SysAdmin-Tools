@@ -1,6 +1,6 @@
 # Module: Install your App.ps1
 # Description: Smart Package Installer with Fixed Absolute Path & Manual ID Fallback
-# Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
+# Author     : Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved.
 
 # Fix Working Directory Context to script's own directory
 $currentScriptDir = $PSScriptRoot
@@ -17,10 +17,11 @@ if (Test-Path $currentScriptDir) {
 }
 
 Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================================================================" -ForegroundColor Cyan
+Write-Host "                                  SMART PACKAGE & FEATURE INSTALLER                                     " -ForegroundColor Cyan
+Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Auto-create WinGet folder if it does not exist
@@ -33,10 +34,11 @@ if (-not (Test-Path $wingetDir)) {
 # ------------------------------------------------------------------------------
 function Invoke-WinGetManualIdInstall {
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "      INSTALL APPLICATION VIA MANUAL WINGET ID      " -ForegroundColor Cyan
-    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "====================================================" -ForegroundColor Cyan
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
+	Write-Host "                               INSTALL APPLICATION VIA MANUAL WINGET ID                                 " -ForegroundColor Cyan
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Tips: Enter exact WinGet App ID (e.g., Google.Chrome, 9N4S39MXHM1T)" -ForegroundColor Gray
     
@@ -84,10 +86,11 @@ function Invoke-WinGetManualIdInstall {
 # ------------------------------------------------------------------------------
 function Invoke-WinGetOnlineSearch {
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "     WINGET ONLINE REPOSITORY SEARCH & INSTALL      " -ForegroundColor Cyan
-    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "====================================================" -ForegroundColor Cyan
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
+	Write-Host "                              WINGET ONLINE REPOSITORY SEARCH & INSTALL                                 " -ForegroundColor Cyan
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
 
     $query = Read-Host "Enter software name to search online (or ENTER to cancel)"
@@ -222,10 +225,11 @@ while ($true) {
     if ($selectionInput.Trim() -eq 'Y' -or $selectionInput.Trim() -eq 'y') {
         Invoke-WinGetManualIdInstall
         Clear-Host
-        Write-Host "====================================================" -ForegroundColor Cyan
-        Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-        Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-        Write-Host "====================================================" -ForegroundColor Cyan
+		Write-Host "========================================================================================================" -ForegroundColor Cyan
+		Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
+		Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+		Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+		Write-Host "========================================================================================================" -ForegroundColor Cyan
         Write-Host ""
         continue
     }
@@ -234,10 +238,11 @@ while ($true) {
     if ($selectionInput.Trim() -eq 'Z' -or $selectionInput.Trim() -eq 'z') {
         Invoke-WinGetOnlineSearch
         Clear-Host
-        Write-Host "====================================================" -ForegroundColor Cyan
-        Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-        Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-        Write-Host "====================================================" -ForegroundColor Cyan
+		Write-Host "========================================================================================================" -ForegroundColor Cyan
+		Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
+		Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+		Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+		Write-Host "========================================================================================================" -ForegroundColor Cyan
         Write-Host ""
         continue
     }
@@ -353,9 +358,10 @@ while ($true) {
     Read-Host | Out-Null
 
     Clear-Host
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
-    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-    Write-Host "====================================================" -ForegroundColor Cyan
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
+	Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
 }

@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script Name: EVKey.ps1
 # Description: Copies EVKey folder to C:\, creates Desktop Shortcut, and launches EVKey64.exe
-# Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
+# Author     : Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved.
 # ==============================================================================
 
 # 1. Determine Source and Destination Paths (Smart Relative Path Lookup)
@@ -16,10 +16,11 @@ if (-not (Test-Path $sourceDir)) {
 $destDir = "C:\EVKey"
 $exePath = Join-Path $destDir "EVKey64.exe"
 
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "             EVKEY CUSTOM INSTALLER                 " -ForegroundColor Cyan
-Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor DarkGray
-Write-Host "====================================================" -ForegroundColor Cyan
+Write-Host "========================================================================================================" -ForegroundColor Cyan
+Write-Host "                                      EVKEY CUSTOM INSTALLER                                            " -ForegroundColor Cyan
+Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-Path $sourceDir)) {

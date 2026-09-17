@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script Name: SysAdmin-Tools.ps1
 # Description: Portable System Administration Platform
-# Author     : Designed by trungtdv4@gmail.com. All Rights Reserved.
+# Author     : Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved.
 # ==============================================================================
 
 function Test-IsAdmin {
@@ -11,10 +11,11 @@ function Test-IsAdmin {
 }
 
 Clear-Host
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM       " -ForegroundColor Cyan
-Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor Yellow
-Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host "========================================================================================================" -ForegroundColor Cyan
+Write-Host "                             SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM                                " -ForegroundColor Cyan
+Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-IsAdmin)) {
@@ -56,7 +57,7 @@ while ($true) {
         }
 
         Write-Host "Thank you for using SysAdmin Tools! Goodbye." -ForegroundColor Green
-        Write-Host "Designed by trungtdv4@gmail.com. All Rights Reserved." -ForegroundColor Yellow
+        Write-Host "Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved." -ForegroundColor Yellow
         Start-Sleep -Seconds 1
         Exit
     }
@@ -73,9 +74,10 @@ while ($true) {
     }
     
     Clear-Host
-    Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "      SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM       " -ForegroundColor Cyan
-    Write-Host "  Designed by trungtdv4@gmail.com. All Rights Reserved. " -ForegroundColor Yellow
-    Write-Host "========================================================" -ForegroundColor Cyan
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
+	Write-Host "                             SYSADMIN TOOLS - SYSTEM MANAGEMENT PLATFORM                                " -ForegroundColor Cyan
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
+	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
 }
