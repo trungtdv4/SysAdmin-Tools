@@ -4,7 +4,7 @@
 Clear-Host
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host "                                      SYSTEM HARDWARE INFORMATION                                       " -ForegroundColor Cyan
-Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""

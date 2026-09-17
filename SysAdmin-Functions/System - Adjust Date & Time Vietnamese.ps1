@@ -1,11 +1,11 @@
 # Module: Adjust Date & Time Vietnamese.ps1
 # Description: Set SE Asia Standard Time, sync Windows Time Service, and set dd/MM/yyyy date format
-# Author     : Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved.
+# Author     : Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.
 
 Clear-Host
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host "                                 ADJUST DATE & TIME VIETNAMESE (GMT+7)                                  " -ForegroundColor Cyan
-Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""

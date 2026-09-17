@@ -1,6 +1,6 @@
 # Module: Install your App.ps1
 # Description: Smart Package Installer with Fixed Absolute Path & Manual ID Fallback
-# Author     : Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved.
+# Author     : Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.
 
 # Fix Working Directory Context to script's own directory
 $currentScriptDir = $PSScriptRoot
@@ -19,7 +19,7 @@ if (Test-Path $currentScriptDir) {
 Clear-Host
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host "                                  SMART PACKAGE & FEATURE INSTALLER                                     " -ForegroundColor Cyan
-Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 Write-Host "========================================================================================================" -ForegroundColor Cyan
 Write-Host ""
@@ -36,7 +36,7 @@ function Invoke-WinGetManualIdInstall {
     Clear-Host
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
 	Write-Host "                               INSTALL APPLICATION VIA MANUAL WINGET ID                                 " -ForegroundColor Cyan
-	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
@@ -88,7 +88,7 @@ function Invoke-WinGetOnlineSearch {
     Clear-Host
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
 	Write-Host "                              WINGET ONLINE REPOSITORY SEARCH & INSTALL                                 " -ForegroundColor Cyan
-	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
@@ -227,7 +227,7 @@ while ($true) {
         Clear-Host
 		Write-Host "========================================================================================================" -ForegroundColor Cyan
 		Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
-		Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+		Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 		Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 		Write-Host "========================================================================================================" -ForegroundColor Cyan
         Write-Host ""
@@ -240,7 +240,7 @@ while ($true) {
         Clear-Host
 		Write-Host "========================================================================================================" -ForegroundColor Cyan
 		Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
-		Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+		Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 		Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 		Write-Host "========================================================================================================" -ForegroundColor Cyan
         Write-Host ""
@@ -360,7 +360,7 @@ while ($true) {
     Clear-Host
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
 	Write-Host "                                 SMART PACKAGE & FEATURE INSTALLER                                      " -ForegroundColor Cyan
-	Write-Host "  Copyright (c) 2026 Trung Nguyen (12345678+trungnguyen@users.noreply.github.com). All rights reserved. " -ForegroundColor DarkGray
+	Write-Host "  Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.   " -ForegroundColor DarkGray
 	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
