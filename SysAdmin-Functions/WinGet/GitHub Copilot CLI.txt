@@ -1,0 +1,1 @@
+winget install --id XPDC8MMRVCF73P -e --silent
