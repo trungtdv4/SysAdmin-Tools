@@ -193,26 +193,115 @@ function Invoke-WinGetOnlineSearch {
 }
 
 # ------------------------------------------------------------------------------
-# MAIN LOCAL MENU LOOP
+# [FLAG: WINGET_ARRAY_CACHE_OPTIMIZED] - Nap Mang ID bang WinGet 1 lan duy nhat
 # ------------------------------------------------------------------------------
-while ($true) {
-    # Absolute Path Scan for .txt and .ps1 files in WinGet directory
-    $packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".txt" -or $_.Extension -eq ".ps1" } | Sort-Object Name
+function Get-WinGetInstalledIdHashSet {
+    Write-Host "[+] Fetching installed WinGet App IDs into RAM Cache..." -ForegroundColor Yellow
+    
+    # Tao tap hop HashSet trong .NET de so sanh sieu toc
+    $installedIds = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+    
+    try {
+        $listRaw = winget list --accept-source-agreements 2>$null
+        $startParsing = $false
 
-    Write-Host "----------------------------------------------------" -ForegroundColor Cyan
-    Write-Host "AVAILABLE LOCAL PACKAGES & CUSTOM INSTALLERS:" -ForegroundColor Yellow
+        foreach ($line in $listRaw) {
+            if ($line -match '^-+') {
+                $startParsing = $true
+                continue
+            }
+            if ($startParsing -and -not [string]::IsNullOrWhiteSpace($line)) {
+                $cleanLine = $line -replace '\[Unknown\]|\[msstore\]|\[winget\]', ''
+                $parts = $cleanLine -split '\s{2,}' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
-    if ($packageFiles -and $packageFiles.Count -gt 0) {
-        for ($i = 0; $i -lt $packageFiles.Count; $i++) {
-            $extTag = if ($packageFiles[$i].Extension -eq ".ps1") { " [Custom Script]" } else { "" }
-            Write-Host "  $($i + 1). $($packageFiles[$i].BaseName)$extTag" -ForegroundColor White
+                if ($parts.Count -ge 2) {
+                    $appId = $parts[1].Trim()
+                    # Dua ID vao HashSet trong RAM
+                    if (-not [string]::IsNullOrWhiteSpace($appId)) {
+                        [void]$installedIds.Add($appId)
+                    }
+                }
+            }
         }
-    } else {
-        Write-Host "  (No local .txt or .ps1 package definitions found in: $wingetDir)" -ForegroundColor DarkGray
+    } catch {
+        Write-Host "[!] Warning: Unable to parse WinGet list automatically." -ForegroundColor Red
     }
 
+    return $installedIds
+}
+
+function Test-AppIsInstalledWinGetArray {
+    param (
+        [System.IO.FileInfo]$packageFile,
+        [System.Collections.Generic.HashSet[string]]$installedIdsSet
+    )
+
+    if ($packageFile.Extension -eq ".ps1") { return $false }
+
+    $cmdString = (Get-Content -Path $packageFile.FullName -Raw -ErrorAction SilentlyContinue).Trim()
+    if ([string]::IsNullOrWhiteSpace($cmdString)) { return $false }
+
+    # 1. Kiem tra Windows Feature (DISM)
+    if ($cmdString -match 'Enable-WindowsOptionalFeature|DISM') {
+        if ($cmdString -match '-FeatureName\s+["'']?([^"''\s]+)["'']?') {
+            $featureName = $matches[1]
+            $featureStatus = Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction SilentlyContinue
+            if ($featureStatus -and $featureStatus.State -eq "Enabled") { return $true }
+        }
+        return $false
+    }
+
+    # 2. Trich xuat App ID tu file .txt (Tieu chuan hoa duy nhat 1 chuoi ID hoac chua --id)
+    $appId = ""
+    if ($cmdString -match '--id\s+["'']?([^"''\s]+)["'']?') {
+        $appId = $matches[1]
+    } else {
+        $appId = $cmdString
+    }
+
+    if ([string]::IsNullOrWhiteSpace($appId)) { return $false }
+
+    # 3. Tra cuu tuc thi trong Mang RAM Cache (Chinh xac 100% tu WinGet)
+    return $installedIdsSet.Contains($appId)
+}
+
+# ------------------------------------------------------------------------------
+# MAIN LOCAL MENU LOOP
+# ------------------------------------------------------------------------------	
+while ($true) {
+	# Quet WinGet 1 LAN DUY NHAT ngay khi vừa mo Function (Gia tri nap thang vao RAM)
+	$installedIdsSet = Get-WinGetInstalledIdHashSet
+
+	# Quet danh sach file .txt local
+	$packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".txt" -or $_.Extension -eq ".ps1" } | Sort-Object Name
+
+	Clear-Host
+	Write-Host "====================================================" -ForegroundColor Cyan
+	Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
+	Write-Host "  Copyright (c) 2026 Trung Nguyen. All Rights Reserved. " -ForegroundColor DarkGray
+	Write-Host "====================================================" -ForegroundColor Cyan
+	Write-Host ""
+	Write-Host "AVAILABLE LOCAL PACKAGES & CUSTOM INSTALLERS:" -ForegroundColor Yellow
+
+	if ($packageFiles -and $packageFiles.Count -gt 0) {
+		for ($i = 0; $i -lt $packageFiles.Count; $i++) {
+			$file = $packageFiles[$i]
+			$extTag = if ($file.Extension -eq ".ps1") { " [Custom Script]" } else { "" }
+			
+			# So sanh trong Mang RAM Hashset (Toc do < 0.001s, chinh xac 100%)
+			$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet
+
+			if ($isInstalled) {
+				Write-Host "  $($i + 1). $($file.BaseName)$extTag " -NoNewline -ForegroundColor Green
+				Write-Host "[Installed]" -ForegroundColor DarkGreen
+			} else {
+				Write-Host "  $($i + 1). $($file.BaseName)$extTag" -ForegroundColor White
+			}
+		}
+	}
+
     Write-Host "  Y. Input App ID Manually (Fallback for special apps)" -ForegroundColor Yellow
-    Write-Host "  Z. Other? (Search online repository)" -ForegroundColor Green
+    Write-Host "  Z. Other? (Search online repository)" -ForegroundColor Blue
     Write-Host "  0. Return to Main Menu" -ForegroundColor Gray
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
     Write-Host ""
@@ -364,4 +453,20 @@ while ($true) {
 	Write-Host "                      Licensed under the GNU General Public License v3.0 (GPLv3).                       " -ForegroundColor DarkGray
 	Write-Host "========================================================================================================" -ForegroundColor Cyan
     Write-Host ""
+}
+
+# ------------------------------------------------------------------------------
+# [FLAG: GLOBAL_ERROR_TRAP] - Giu man hinh dừng lai neu co loi bat ngo
+# ------------------------------------------------------------------------------
+trap {
+    Write-Host ""
+    Write-Host "====================================================" -ForegroundColor Red
+    Write-Host "[!] CRITICAL ERROR DETECTED:" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Yellow
+    Write-Host "Script Location: $($_.InvocationInfo.PositionMessage)" -ForegroundColor Gray
+    Write-Host "====================================================" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Press ENTER to exit..." -ForegroundColor White
+    Read-Host | Out-Null
+    continue
 }

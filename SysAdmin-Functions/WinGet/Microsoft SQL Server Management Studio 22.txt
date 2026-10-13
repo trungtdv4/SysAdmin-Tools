@@ -1,0 +1,1 @@
+winget install --id Microsoft.SQLServerManagementStudio.22 -e --silent
