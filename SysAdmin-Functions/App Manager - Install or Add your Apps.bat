@@ -236,7 +236,7 @@ function Get-WinGetInstalledIdHashSet {
         if ($wingetCommand) {
             # winget export writes a supported JSON format. Do not parse the
             # human-readable "winget list" table, whose columns can shift.
-            & $wingetCommand.Source export --output $tempExportPath --accept-source-agreements 2>$null | Out-Null
+            & $wingetCommand.Source export --output $tempExportPath --accept-source-agreements --disable-interactivity 2>$null | Out-Null
 
             if (Test-Path -LiteralPath $tempExportPath) {
                 $exportData = Get-Content -LiteralPath $tempExportPath -Raw -ErrorAction Stop |
@@ -393,7 +393,14 @@ function Test-AppIsInstalledWinGetArray {
         return $true
     }
 
-    # 4. Display-name fallback for apps installed outside WinGet or not mapped
+    # 4. Query WinGet directly if export could not map this package.
+    #    This is slower than the cache, so it is used only for unresolved IDs.
+    if (-not [string]::IsNullOrWhiteSpace($appId) -and
+        (Test-WinGetExactInstalledId -AppId $appId)) {
+        return $true
+    }
+
+    # 5. Display-name fallback for apps installed outside WinGet or not mapped
     #    to a source ID (notably Intel Driver & Support Assistant).
     if ($appId -ieq 'Intel.IntelDriverAndSupportAssistant') {
         foreach ($entry in @($installedAppInventory.Entries)) {
