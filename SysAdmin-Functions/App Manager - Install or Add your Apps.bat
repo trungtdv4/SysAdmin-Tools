@@ -86,9 +86,7 @@ function Invoke-WinGetManualIdInstall {
     Write-Host "====================================================" -ForegroundColor Cyan
 
     Write-Host "[+] Checking if ID '$cleanId' is already installed..." -ForegroundColor Yellow
-    $checkResult = winget list --id $cleanId --accept-source-agreements 2>$null
-
-    if ($checkResult -match [regex]::Escape($cleanId)) {
+    if (Test-WinGetExactInstalledId -AppId $cleanId) {
         Write-Host "[!] WARNING: App ID '$cleanId' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
         Write-Host "    Skipping installation." -ForegroundColor DarkGray
     } else {
@@ -195,9 +193,7 @@ function Invoke-WinGetOnlineSearch {
             Write-Host "====================================================" -ForegroundColor Cyan
 
             Write-Host "[+] Checking if '$appName' is already installed..." -ForegroundColor Yellow
-            $checkResult = winget list --id $appId --accept-source-agreements 2>$null
-
-            if ($checkResult -match [regex]::Escape($appId)) {
+            if (Test-WinGetExactInstalledId -AppId $appId) {
                 Write-Host "[!] WARNING: '$appName' is ALREADY INSTALLED on this system!" -ForegroundColor Yellow
                 Write-Host "    Skipping installation." -ForegroundColor DarkGray
             } else {
@@ -226,47 +222,123 @@ function Invoke-WinGetOnlineSearch {
 }
 
 # ------------------------------------------------------------------------------
-# [FLAG: WINGET_ARRAY_CACHE_OPTIMIZED] - Nap Mang ID bang WinGet 1 lan duy nhat
+# INSTALLED-APP DETECTION: WinGet JSON inventory + Windows uninstall registry
 # ------------------------------------------------------------------------------
 function Get-WinGetInstalledIdHashSet {
-    Write-Host "[+] Fetching installed WinGet App IDs into RAM Cache..." -ForegroundColor Yellow
-    
-    # Tao tap hop HashSet trong .NET de so sanh sieu toc
-    $installedIds = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
-    
+    Write-Host "[+] Loading installed WinGet package IDs..." -ForegroundColor Yellow
+
+    # HashSet keeps exact, case-insensitive package-ID comparisons.
+    $installedIds = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    $tempExportPath = Join-Path $env:TEMP ("SysAdminTools-WinGetExport-{0}.json" -f ([guid]::NewGuid().ToString('N')))
+
     try {
-        $listRaw = winget list --accept-source-agreements 2>$null
-        $startParsing = $false
+        $wingetCommand = Get-Command winget.exe -ErrorAction SilentlyContinue
+        if ($wingetCommand) {
+            # winget export writes a supported JSON format. Do not parse the
+            # human-readable "winget list" table, whose columns can shift.
+            & $wingetCommand.Source export --output $tempExportPath --accept-source-agreements 2>$null | Out-Null
 
-        foreach ($line in $listRaw) {
-            if ($line -match '^-+') {
-                $startParsing = $true
-                continue
-            }
-            if ($startParsing -and -not [string]::IsNullOrWhiteSpace($line)) {
-                $cleanLine = $line -replace '\[Unknown\]|\[msstore\]|\[winget\]', ''
-                $parts = $cleanLine -split '\s{2,}' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            if (Test-Path -LiteralPath $tempExportPath) {
+                $exportData = Get-Content -LiteralPath $tempExportPath -Raw -ErrorAction Stop |
+                    ConvertFrom-Json -ErrorAction Stop
 
-                if ($parts.Count -ge 2) {
-                    $appId = $parts[1].Trim()
-                    # Dua ID vao HashSet trong RAM
-                    if (-not [string]::IsNullOrWhiteSpace($appId)) {
-                        [void]$installedIds.Add($appId)
+                foreach ($source in @($exportData.Sources)) {
+                    foreach ($package in @($source.Packages)) {
+                        $packageId = [string]$package.PackageIdentifier
+                        if (-not [string]::IsNullOrWhiteSpace($packageId)) {
+                            [void]$installedIds.Add($packageId.Trim())
+                        }
                     }
                 }
             }
         }
     } catch {
-        Write-Host "[!] Warning: Unable to parse WinGet list automatically." -ForegroundColor Red
+        Write-Host "[!] WinGet JSON inventory unavailable; checking registered app names where possible." -ForegroundColor DarkYellow
+    } finally {
+        if (Test-Path -LiteralPath $tempExportPath) {
+            Remove-Item -LiteralPath $tempExportPath -Force -ErrorAction SilentlyContinue
+        }
     }
 
-    return $installedIds
+    # Keep the HashSet as a single object instead of letting PowerShell
+    # enumerate its elements into separate pipeline outputs.
+    return ,$installedIds
+}
+
+function Get-InstalledApplicationRegistryInventory {
+    $uninstallPaths = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )
+
+    $installedEntries = @(
+        foreach ($registryPath in $uninstallPaths) {
+            Get-ItemProperty -Path $registryPath -ErrorAction SilentlyContinue |
+                Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.DisplayName) } |
+                Select-Object DisplayName, DisplayVersion, Publisher
+        }
+    )
+
+    # Click-to-Run's ProductReleaseIds distinguish Microsoft 365 from Office LTSC 2024.
+    $officeConfigurationPaths = @(
+        'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun\Configuration'
+    )
+    $officeProductReleaseIds = @(
+        foreach ($registryPath in $officeConfigurationPaths) {
+            $configuration = Get-ItemProperty -Path $registryPath -ErrorAction SilentlyContinue
+            if ($configuration -and -not [string]::IsNullOrWhiteSpace([string]$configuration.ProductReleaseIds)) {
+                [string]$configuration.ProductReleaseIds
+            }
+        }
+    )
+
+    return [PSCustomObject]@{
+        Entries = $installedEntries
+        OfficeProductReleaseIds = $officeProductReleaseIds
+    }
+}
+
+function Test-WinGetExactInstalledId {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$AppId
+    )
+
+    if ([string]::IsNullOrWhiteSpace($AppId)) { return $false }
+
+    try {
+        # Query one exact ID and verify it as a complete token, never as a substring.
+        $listOutput = & winget list --id $AppId --exact --accept-source-agreements --disable-interactivity 2>$null
+        $idPattern = '(?i)(?<![A-Za-z0-9._+-])' + [regex]::Escape($AppId.Trim()) + '(?![A-Za-z0-9._+-])'
+
+        foreach ($line in @($listOutput)) {
+            if ([string]$line -match $idPattern) { return $true }
+        }
+    } catch {
+        return $false
+    }
+
+    return $false
+}
+
+function ConvertTo-AppNameKey {
+    param ([string]$Name)
+
+    if ([string]::IsNullOrWhiteSpace($Name)) { return "" }
+
+    $cleanName = $Name -replace '\s*\([^)]*\)\s*$', ''
+    $cleanName = $cleanName -replace '[®™©]', ''
+    return ($cleanName -replace '[^A-Za-z0-9]', '').ToLowerInvariant()
 }
 
 function Test-AppIsInstalledWinGetArray {
     param (
         [System.IO.FileInfo]$packageFile,
-        [System.Collections.Generic.HashSet[string]]$installedIdsSet
+        [System.Collections.Generic.HashSet[string]]$installedIdsSet,
+        [PSCustomObject]$installedAppInventory
     )
 
     if ($packageFile.Extension -eq ".ps1") { return $false }
@@ -274,7 +346,7 @@ function Test-AppIsInstalledWinGetArray {
     $cmdString = (Get-Content -Path $packageFile.FullName -Raw -ErrorAction SilentlyContinue).Trim()
     if ([string]::IsNullOrWhiteSpace($cmdString)) { return $false }
 
-    # 1. Kiem tra Windows Feature (DISM)
+    # 1. Windows Optional Features (DISM)
     if ($cmdString -match 'Enable-WindowsOptionalFeature|DISM') {
         if ($cmdString -match '-FeatureName\s+["'']?([^"''\s]+)["'']?') {
             $featureName = $matches[1]
@@ -284,18 +356,72 @@ function Test-AppIsInstalledWinGetArray {
         return $false
     }
 
-    # 2. Trich xuat App ID tu file .txt (Tieu chuan hoa duy nhat 1 chuoi ID hoac chua --id)
+    # 2. Extract the package ID from the local install definition.
     $appId = ""
-    if ($cmdString -match '--id\s+["'']?([^"''\s]+)["'']?') {
-        $appId = $matches[1]
-    } else {
-        $appId = $cmdString
+    if ($cmdString -match '(?i)--id\s+["'']?([^"''\s]+)["'']?') {
+        $appId = $matches[1].Trim()
     }
 
-    if ([string]::IsNullOrWhiteSpace($appId)) { return $false }
+    $packageName = [string]$packageFile.BaseName
+    $officeProductIds = (@($installedAppInventory.OfficeProductReleaseIds) -join ';')
 
-    # 3. Tra cuu tuc thi trong Mang RAM Cache (Chinh xac 100% tu WinGet)
-    return $installedIdsSet.Contains($appId)
+    # Microsoft 365 and the "Office 2024" menu entry currently share the same
+    # WinGet ID (Microsoft.Office), so use Click-to-Run product identity here.
+    if ($appId -ieq 'Microsoft.Office' -and $packageName -match '(?i)^Microsoft\s+Office\s+2024\b') {
+        if ($officeProductIds -match '(?i)2024') { return $true }
+
+        foreach ($entry in @($installedAppInventory.Entries)) {
+            if ([string]$entry.DisplayName -match '(?i)^Microsoft\s+Office.*\b2024\b') { return $true }
+        }
+        return $false
+    }
+
+    if ($appId -ieq 'Microsoft.Office' -and $packageName -match '(?i)^Microsoft\s+365\b') {
+        if ($officeProductIds -match '(?i)(O365|M365|Microsoft365)') { return $true }
+
+        foreach ($entry in @($installedAppInventory.Entries)) {
+            if ([string]$entry.DisplayName -match '(?i)^(Microsoft\s+365|Microsoft\s+Office\s+365|Microsoft\s+365\s+Apps)\b') {
+                return $true
+            }
+        }
+        return $false
+    }
+
+    # 3. Exact package ID from WinGet's JSON export.
+    if (-not [string]::IsNullOrWhiteSpace($appId) -and
+        $installedIdsSet -and $installedIdsSet.Contains($appId)) {
+        return $true
+    }
+
+    # 4. Display-name fallback for apps installed outside WinGet or not mapped
+    #    to a source ID (notably Intel Driver & Support Assistant).
+    if ($appId -ieq 'Intel.IntelDriverAndSupportAssistant') {
+        foreach ($entry in @($installedAppInventory.Entries)) {
+            if ([string]$entry.DisplayName -match '(?i)\bIntel\b.*(?:Driver\s*(?:&|and)\s*Support\s*Assistant|\bDSA\b)') {
+                return $true
+            }
+        }
+    }
+
+    $packageNameKey = ConvertTo-AppNameKey -Name $packageName
+    if ($packageNameKey.Length -ge 4) {
+        foreach ($entry in @($installedAppInventory.Entries)) {
+            $installedNameKey = ConvertTo-AppNameKey -Name ([string]$entry.DisplayName)
+            if ([string]::IsNullOrWhiteSpace($installedNameKey)) { continue }
+
+            if ($installedNameKey -eq $packageNameKey) { return $true }
+
+            # Permit a version or locale suffix, but do not use broad substring matching.
+            if ($installedNameKey.StartsWith($packageNameKey, [StringComparison]::OrdinalIgnoreCase)) {
+                $suffix = $installedNameKey.Substring($packageNameKey.Length)
+                if ($suffix -match '^(?:\d|x64|x86|32bit|64bit|enus|eng|update|version)') {
+                    return $true
+                }
+            }
+        }
+    }
+
+    return $false
 }
 
 # ------------------------------------------------------------------------------
@@ -304,6 +430,7 @@ function Test-AppIsInstalledWinGetArray {
 while ($true) {
 	# Quet WinGet 1 LAN DUY NHAT ngay khi vừa mo Function (Gia tri nap thang vao RAM)
 	$installedIdsSet = Get-WinGetInstalledIdHashSet
+	$installedAppInventory = Get-InstalledApplicationRegistryInventory
 
 	# Quet danh sach file .txt local
 	$packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".txt" -or $_.Extension -eq ".ps1" } | Sort-Object Name
@@ -322,7 +449,7 @@ while ($true) {
 			$extTag = if ($file.Extension -eq ".ps1") { " [Custom Script]" } else { "" }
 			
 			# So sanh trong Mang RAM Hashset (Toc do < 0.001s, chinh xac 100%)
-			$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet
+			$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet -installedAppInventory $installedAppInventory
 
 			if ($isInstalled) {
 				Write-Host "  $($i + 1). $($file.BaseName)$extTag " -NoNewline -ForegroundColor Green
@@ -446,8 +573,7 @@ while ($true) {
                     $isInstalled = $false
                     if (-not [string]::IsNullOrWhiteSpace($appId)) {
                         Write-Host "[+] Checking if '$appName' (ID: $appId) is installed..." -ForegroundColor Yellow
-                        $checkResult = winget list --id $appId --accept-source-agreements 2>$null
-                        if ($checkResult -match [regex]::Escape($appId)) { $isInstalled = $true }
+                        if (Test-WinGetExactInstalledId -AppId $appId) { $isInstalled = $true }
                     }
 
                     if ($isInstalled) {
