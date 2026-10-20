@@ -435,7 +435,7 @@ function Test-AppIsInstalledWinGetArray {
 # MAIN LOCAL MENU LOOP
 # ------------------------------------------------------------------------------	
 while ($true) {
-	# Quet WinGet 1 LAN DUY NHAT ngay khi vừa mo Function (Gia tri nap thang vao RAM)
+	# Load the WinGet ID cache and registry inventory once per menu refresh.
 	$installedIdsSet = Get-WinGetInstalledIdHashSet
 	$installedAppInventory = Get-InstalledApplicationRegistryInventory
 
@@ -455,7 +455,7 @@ while ($true) {
 			$file = $packageFiles[$i]
 			$extTag = if ($file.Extension -eq ".ps1") { " [Custom Script]" } else { "" }
 			
-			# So sanh trong Mang RAM Hashset (Toc do < 0.001s, chinh xac 100%)
+			# Prefer exact IDs from the cache; use exact WinGet/registry fallbacks when needed.
 			$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet -installedAppInventory $installedAppInventory
 
 			if ($isInstalled) {
