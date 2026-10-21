@@ -1,74 +1,10 @@
-<# :
-@cls
-@echo off
-title SMART PACKAGE & FEATURE INSTALLER
-
-:: 1. Kiem tra va yeu cau quyen Administrator (Xoa block nay neu tool khong can quyen Admin)
-net session >nul 2>&1
-if %errorLevel% neq 0 (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-:: 2. Khởi tạo đường dẫn file .ps1 tạm trong thư mục Temp của Windows
-set "ps1_temp=%temp%\run_ps1_%random%.ps1"
-set "PS_ORIGINAL_DIR=%~dp0"
-
-:: 3. Copy toàn bộ nội dung của chính file .bat này thành file .ps1
-copy /y "%~f0" "%ps1_temp%" >nul
-
-:: 4. Gọi PowerShell đọc và thực thi nguyên bản file .ps1 vừa tạo
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ps1_temp%"
-
-:: 5. Xóa file tạm sau khi chạy xong để dọn dẹp hệ thống
-del "%ps1_temp%" >nul 2>&1
-set "PS_ORIGINAL_DIR="
-
-:: 6. Dừng màn hình và thoát Batch
-pause
-exit /b
-#>
-
-# =========================================================
-# LÕI POWERSHELL CỦA BẠN BẮT ĐẦU TỪ ĐÂY
-# =========================================================
-
-
 # Module: Install your App.ps1
 # Description: Smart Package Installer with Fixed Absolute Path & Manual ID Fallback
 # Author     : Copyright (c) 2026 Trung Nguyen (82429801+trungtdv4@users.noreply.github.com). All rights reserved.
 
 # Fix Working Directory Context to script's own directory
-$currentScriptDir = $null
-
-# 1. Chay tu file .bat polyglot: lay thu muc goc tu bien moi truong do Batch thiet lap (%~dp0)
-if ($env:PS_ORIGINAL_DIR -and (Test-Path (Join-Path $env:PS_ORIGINAL_DIR "WinGet"))) {
-    $currentScriptDir = $env:PS_ORIGINAL_DIR.TrimEnd('\')
-}
-
-# 2. Chay tu file .ps1 truc tiep ($PSScriptRoot hop le va khong phai Temp)
-if (-not $currentScriptDir -and $PSScriptRoot -and ($PSScriptRoot -notlike "*\AppData\Local\Temp*") -and (Test-Path (Join-Path $PSScriptRoot "WinGet"))) {
-    $currentScriptDir = $PSScriptRoot
-}
-
-# 3. Fallback: Tim thu muc WinGet tu cac vi tri tiem nang
-if (-not $currentScriptDir) {
-    $candidateDirs = @(
-        $PSScriptRoot,
-        (Get-Location).Path,
-        (Join-Path $PSScriptRoot "..\SysAdmin-Functions"),
-        (Join-Path $env:LOCALAPPDATA "SysAdmin-Tools-App\SysAdmin-Functions")
-    )
-    foreach ($dir in $candidateDirs) {
-        if ($dir -and (Test-Path (Join-Path $dir "WinGet"))) {
-            $currentScriptDir = (Resolve-Path $dir).Path
-            break
-        }
-    }
-}
-
-# 4. Neu van chua xac dinh duoc thi mac dinh ve LocalAppData
-if (-not $currentScriptDir) {
+$currentScriptDir = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($currentScriptDir)) {
     $currentScriptDir = Join-Path $env:LOCALAPPDATA "SysAdmin-Tools-App\SysAdmin-Functions"
 }
 
