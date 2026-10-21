@@ -1,0 +1,1 @@
+winget install --id lamquangminh.EVKey -e --accept-package-agreements --accept-source-agreements

@@ -31,10 +31,10 @@ while ($true) {
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
     Write-Host "AVAILABLE SYSTEM ADMIN FUNCTIONS:" -ForegroundColor Cyan
 
-    $scriptFiles = Get-ChildItem -Path $functionsDir -Filter "*.ps1" -ErrorAction SilentlyContinue | Sort-Object Name
+    $scriptFiles = @(Get-ChildItem -Path $functionsDir -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.ps1', '.bat', '.cmd' } | Sort-Object Name)
 
     if (-not $scriptFiles -or $scriptFiles.Count -eq 0) {
-        Write-Host "[!] No function scripts (.ps1) found in: $functionsDir" -ForegroundColor Red
+        Write-Host "[!] No function scripts (.ps1, .bat) found in: $functionsDir" -ForegroundColor Red
         Write-Host "  0. Exit Application" -ForegroundColor Gray
     } else {
         for ($i = 0; $i -lt $scriptFiles.Count; $i++) {
