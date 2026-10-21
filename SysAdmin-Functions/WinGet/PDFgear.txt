@@ -1,0 +1,1 @@
+winget install --id PDFgear.PDFgear -e --accept-package-agreements --accept-source-agreements

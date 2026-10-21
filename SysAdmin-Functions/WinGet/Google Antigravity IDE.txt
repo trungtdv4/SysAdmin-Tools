@@ -1,0 +1,1 @@
+winget install --id Google.AntigravityIDE -e --accept-package-agreements --accept-source-agreements
