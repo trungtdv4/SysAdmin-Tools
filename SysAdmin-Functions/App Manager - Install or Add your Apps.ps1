@@ -58,18 +58,18 @@ function Invoke-WinGetManualIdInstall {
         Write-Host "    Skipping installation." -ForegroundColor DarkGray
     } else {
         Write-Host "[+] Executing WinGet installation for ID: $cleanId..." -ForegroundColor Green
-        $cmd = "winget install --id `"$cleanId`" -e --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
-        Write-Host "    Command: $cmd" -ForegroundColor Gray
+        $wingetArgs = @("install", "--id", $cleanId, "-e", "--accept-package-agreements", "--accept-source-agreements", "--disable-interactivity")
+        Write-Host "    Command: winget $($wingetArgs -join ' ')" -ForegroundColor Gray
         Write-Host ""
 
-        $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $cmd" -Wait -NoNewWindow -PassThru
+        & winget @wingetArgs
         
-        if ($process.ExitCode -eq 0) {
+        if ($LASTEXITCODE -eq 0) {
             Write-Host ""
             Write-Host "[V] Successfully installed package with ID: $cleanId" -ForegroundColor Green
         } else {
             Write-Host ""
-            Write-Host "[!] Installation failed or exited with error code: $($process.ExitCode)" -ForegroundColor Red
+            Write-Host "[!] Installation failed or exited with error code: $LASTEXITCODE" -ForegroundColor Red
             Write-Host "    Please double-check the exact ID using 'winget search' CLI." -ForegroundColor Yellow
         }
     }
@@ -102,19 +102,56 @@ function Invoke-WinGetOnlineSearch {
     $startParsing = $false
 
     foreach ($line in $searchRaw) {
-        if ($line -match '^-+') {
+        if ($line -match '^-{10,}') {
             $startParsing = $true
             continue
         }
-        if ($startParsing -and -not [string]::IsNullOrWhiteSpace($line)) {
-            $cleanLine = $line -replace '\[Unknown\]|\[msstore\]|\[winget\]', ''
-            $parts = $cleanLine -split '\s{2,}' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        if (-not $startParsing -or [string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
 
-            if ($parts.Count -ge 2) {
-                $results += [PSCustomObject]@{
-                    Name = $parts[0].Trim()
-                    Id   = $parts[1].Trim()
-                }
+        $rem = $line.Trim()
+
+        # 1. Tách Source ở cuối dòng (winget, msstore...)
+        $source = ""
+        if ($rem -match '\s+([A-Za-z0-9_\-\.]+)$') {
+            $source = $matches[1]
+            $rem = $rem.Substring(0, $rem.Length - $matches[0].Length).TrimEnd()
+        } else {
+            continue
+        }
+
+        # 2. Tách Match tag nếu có (Tag: ..., Moniker: ..., Command: ...)
+        if ($rem -match '\s+(?:Tag|Moniker|Command):\s+.*$') {
+            $rem = $rem.Substring(0, $rem.Length - $matches[0].Length).TrimEnd()
+        }
+
+        # 3. Tách Version (từ cuối cùng còn lại)
+        $version = ""
+        if ($rem -match '\s+(\S+)$') {
+            $version = $matches[1]
+            $rem = $rem.Substring(0, $rem.Length - $matches[0].Length).TrimEnd()
+        } else {
+            continue
+        }
+
+        # 4. Tách ID (từ cuối cùng còn lại, ID trong WinGet không bao giờ có khoảng trắng)
+        $id = ""
+        if ($rem -match '\s+(\S+)$') {
+            $id = $matches[1]
+            $rem = $rem.Substring(0, $rem.Length - $matches[0].Length).TrimEnd()
+        } else {
+            continue
+        }
+
+        # 5. Phần chuỗi còn lại ở đầu dòng chính là Name (tên app đầy đủ)
+        $name = $rem.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($name) -and -not [string]::IsNullOrWhiteSpace($id)) {
+            $results += [PSCustomObject]@{
+                Name    = $name
+                Id      = $id
+                Version = $version
+                Source  = $source
             }
         }
     }
@@ -134,8 +171,10 @@ function Invoke-WinGetOnlineSearch {
 
     $maxCount = [math]::Min($results.Count, 15)
     for ($i = 0; $i -lt $maxCount; $i++) {
+        $sourceTag = if ($results[$i].Source) { " ($($results[$i].Source))" } else { "" }
         Write-Host "  $($i + 1). $($results[$i].Name) " -NoNewline -ForegroundColor White
-        Write-Host "[$($results[$i].Id)]" -ForegroundColor Gray
+        Write-Host "[$($results[$i].Id)]" -NoNewline -ForegroundColor Cyan
+        Write-Host "$sourceTag" -ForegroundColor DarkGray
     }
     Write-Host "  0. Back to Local Menu" -ForegroundColor Gray
     Write-Host "----------------------------------------------------" -ForegroundColor Cyan
@@ -165,15 +204,24 @@ function Invoke-WinGetOnlineSearch {
                 Write-Host "    Skipping installation." -ForegroundColor DarkGray
             } else {
                 Write-Host "[+] Executing WinGet online installation..." -ForegroundColor Green
-                $cmd = "winget install --id `"$appId`" -e --silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
-                Write-Host "    Command: $cmd" -ForegroundColor Gray
                 
-                $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $cmd" -Wait -NoNewWindow -PassThru
+                $wingetArgs = @("install", "--id", $appId, "-e")
+                if ($app.Source) {
+                    $wingetArgs += @("--source", $app.Source)
+                }
+                $wingetArgs += @("--accept-package-agreements", "--accept-source-agreements", "--disable-interactivity")
                 
-                if ($process.ExitCode -eq 0) {
+                Write-Host "    Command: winget $($wingetArgs -join ' ')" -ForegroundColor Gray
+                Write-Host ""
+                
+                & winget @wingetArgs
+                
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host ""
                     Write-Host "[V] Finished installation task for: $appName" -ForegroundColor Green
                 } else {
-                    Write-Host "[!] ERROR: Failed to install '$appName' automatically." -ForegroundColor Red
+                    Write-Host ""
+                    Write-Host "[!] ERROR: Failed to install '$appName' automatically (Exit Code: $LASTEXITCODE)." -ForegroundColor Red
                     Write-Host "    [GUIDE]: Please note down ID [$appId], return to Menu, and choose Option Y to input manually!" -ForegroundColor Yellow
                 }
                 Start-Sleep -Seconds 2
