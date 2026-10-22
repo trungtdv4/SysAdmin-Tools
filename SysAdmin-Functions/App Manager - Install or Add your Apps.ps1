@@ -449,20 +449,29 @@ function Test-AppIsInstalledWinGetArray {
 # ------------------------------------------------------------------------------
 # MAIN LOCAL MENU LOOP
 # ------------------------------------------------------------------------------	
+$checkInstalled = $false
+
 while ($true) {
-	# Load the WinGet ID cache and registry inventory once per menu refresh.
-	$installedIdsSet = Get-WinGetInstalledIdHashSet
-	$installedAppInventory = Get-InstalledApplicationRegistryInventory
-
-	# Quet danh sach file .txt local
-	$packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".txt" -or $_.Extension -eq ".ps1" } | Sort-Object Name
-
 	Clear-Host
 	Write-Host "====================================================" -ForegroundColor Cyan
 	Write-Host "       SMART PACKAGE & FEATURE INSTALLER            " -ForegroundColor Cyan
 	Write-Host "  Copyright (c) 2026 Trung Nguyen. All Rights Reserved. " -ForegroundColor DarkGray
 	Write-Host "====================================================" -ForegroundColor Cyan
 	Write-Host ""
+
+	# Load the WinGet ID cache and registry inventory only when check switch is enabled.
+	if ($checkInstalled) {
+		$installedIdsSet = Get-WinGetInstalledIdHashSet
+		$installedAppInventory = Get-InstalledApplicationRegistryInventory
+		Write-Host ""
+	} else {
+		$installedIdsSet = $null
+		$installedAppInventory = $null
+	}
+
+	# Quet danh sach file .txt local
+	$packageFiles = Get-ChildItem -Path $wingetDir -Filter "*.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".txt" -or $_.Extension -eq ".ps1" } | Sort-Object Name
+
 	Write-Host "AVAILABLE LOCAL PACKAGES & CUSTOM INSTALLERS:" -ForegroundColor Yellow
 
 	if ($packageFiles -and $packageFiles.Count -gt 0) {
@@ -470,18 +479,26 @@ while ($true) {
 			$file = $packageFiles[$i]
 			$extTag = if ($file.Extension -eq ".ps1") { " [Custom Script]" } else { "" }
 			
-			# Prefer exact IDs from the cache; use exact WinGet/registry fallbacks when needed.
-			$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet -installedAppInventory $installedAppInventory
+			if ($checkInstalled) {
+				# Prefer exact IDs from the cache; use exact WinGet/registry fallbacks when needed.
+				$isInstalled = Test-AppIsInstalledWinGetArray -packageFile $file -installedIdsSet $installedIdsSet -installedAppInventory $installedAppInventory
 
-			if ($isInstalled) {
-				Write-Host "  $($i + 1). $($file.BaseName)$extTag " -NoNewline -ForegroundColor Green
-				Write-Host "[Installed]" -ForegroundColor DarkGreen
+				if ($isInstalled) {
+					Write-Host "  $($i + 1). $($file.BaseName)$extTag " -NoNewline -ForegroundColor Green
+					Write-Host "[Installed]" -ForegroundColor DarkGreen
+				} else {
+					Write-Host "  $($i + 1). $($file.BaseName)$extTag" -ForegroundColor White
+				}
 			} else {
 				Write-Host "  $($i + 1). $($file.BaseName)$extTag" -ForegroundColor White
 			}
 		}
 	}
 
+    $statusDisplay = if ($checkInstalled) { "[ON - Scanned]" } else { "[OFF - Fast Mode]" }
+    $statusColor   = if ($checkInstalled) { "Green" } else { "DarkGray" }
+    Write-Host "  X. Check Installed Status: " -NoNewline -ForegroundColor Cyan
+    Write-Host "$statusDisplay" -ForegroundColor $statusColor
     Write-Host "  Y. Input App ID Manually (Fallback for special apps)" -ForegroundColor Yellow
     Write-Host "  Z. Other? (Search online repository)" -ForegroundColor Blue
     Write-Host "  0. Return to Main Menu" -ForegroundColor Gray
@@ -490,7 +507,14 @@ while ($true) {
     Write-Host "Tips: Enter numbers separated by commas to install multiple items (e.g., 1,3)" -ForegroundColor Gray
     $selectionInput = Read-Host "Select an option or package number(s)"
 
+    if ([string]::IsNullOrWhiteSpace($selectionInput)) { continue }
     if ($selectionInput.Trim() -eq '0') { break }
+
+    # Option X: Toggle Check Installed Status
+    if ($selectionInput.Trim() -ieq 'X') {
+        $checkInstalled = -not $checkInstalled
+        continue
+    }
 
     # Option Y: Manual App ID Input
     if ($selectionInput.Trim() -eq 'Y' -or $selectionInput.Trim() -eq 'y') {
