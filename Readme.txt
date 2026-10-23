@@ -1,1 +1,0 @@
-irm https://bit.ly/SystemAdminTools | iex

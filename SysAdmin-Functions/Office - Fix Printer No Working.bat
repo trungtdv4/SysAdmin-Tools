@@ -1,7 +1,7 @@
 <# :
 @cls
 @echo off
-title Xoa lenh in ket & Fix may in Offline - Windows
+title Xoa lenh in ket va Fix may in Offline - Windows
 
 :: Kiem tra va yeu cau quyen Administrator
 net session >nul 2>&1
