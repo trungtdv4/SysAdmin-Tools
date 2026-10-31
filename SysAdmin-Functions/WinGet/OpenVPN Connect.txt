@@ -1,0 +1,1 @@
+winget install --id XPDLGW32HHRB5P -e --accept-package-agreements --accept-source-agreements
