@@ -132,7 +132,7 @@ function Invoke-DriverRestore {
 }
 
 # ------------------------------------------------------------------------------
-# [FLAG: SELECTIVE_BACKUP] - Quét phần cứng, gộp nhóm và trích xuất theo STT (Bảng rộng)
+# [FLAG: SELECTIVE_BACKUP] - Quét phần cứng, gộp nhóm và trích xuất theo STT
 # ------------------------------------------------------------------------------
 function Invoke-ExportDriverByHardwareSelect {
     Show-Banner
@@ -231,6 +231,12 @@ function Invoke-ExportDriverByHardwareSelect {
         if ($displayName.Length -gt 65) { 
             $displayName = $displayName.Substring(0, 62) + "..." 
         }
+		
+		# Cắt bớt Class nếu dài quá 16 ký tự
+        $className = $item.Class
+        if ($className.Length -gt 16) { 
+            $className = $className.Substring(0, 13) + "..." 
+        }
 
         # Cắt bớt tên nhà sản xuất nếu dài quá 22 ký tự
         $providerName = $item.Provider
@@ -238,7 +244,7 @@ function Invoke-ExportDriverByHardwareSelect {
             $providerName = $providerName.Substring(0, 19) + "..." 
         }
         
-        Write-Host ("[{0,2}]  | {1,-65} | {2,-16} | {3,-22} | [{4} Fdr]" -f $item.Index, $displayName, $item.Class, $providerName, $item.FolderCount) -ForegroundColor Green
+        Write-Host ("[{0,2}]  | {1,-65} | {2,-16} | {3,-22} | [{4} Fdr]" -f $item.Index, $displayName, $className, $providerName, $item.FolderCount) -ForegroundColor Green
     }
 
     Write-Host ""
