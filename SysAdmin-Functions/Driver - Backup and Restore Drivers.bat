@@ -132,14 +132,24 @@ function Invoke-DriverRestore {
 }
 
 # ------------------------------------------------------------------------------
-# [FLAG: SELECTIVE_BACKUP] - Quét phần cứng, gộp nhóm và trích xuất theo STT
+# [FLAG: SELECTIVE_BACKUP] - Quét phần cứng, gộp nhóm và trích xuất theo STT (Bảng rộng)
 # ------------------------------------------------------------------------------
 function Invoke-ExportDriverByHardwareSelect {
     Show-Banner
+    
+    # Tự động nới rộng kích thước cửa sổ Console nếu cần để tránh trôi dòng
+    Try {
+        if ($Host.UI.RawUI.WindowSize.Width -lt 135) {
+            $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(135, $Host.UI.RawUI.WindowSize.Height)
+        }
+    } Catch {
+        # Bỏ qua nếu cửa sổ CMD không cho phép resize tự động
+    }
+
     Write-Host "[+] Dang quet va gom nhom danh sach Driver OEM trong he thong..." -ForegroundColor Cyan
     Write-Host ""
 
-    # Hàm nội bộ bóc tách tên từ file .inf (Tránh lỗi CommandNotFoundException)
+    # Hàm nội bộ bóc tách tên từ file .inf
     function Script:Get-InfDeviceNameInternal {
         param ([string]$InfFilePath)
         if (-not (Test-Path -Path $InfFilePath)) { return $null }
@@ -155,7 +165,6 @@ function Invoke-ExportDriverByHardwareSelect {
         return $null
     }
 
-    # Lấy danh sách Driver OEM
     $oemDrivers = Get-WindowsDriver -Online -ErrorAction SilentlyContinue
     if (-not $oemDrivers) {
         Write-Host "[!] Khong tim thay Driver OEM nao trong he thong!" -ForegroundColor Red
@@ -163,12 +172,9 @@ function Invoke-ExportDriverByHardwareSelect {
     }
 
     $signedDrivers = Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue
-
-    # Bảng băm (Hashtable) dùng để gộp các thư mục driver trùng tên thiết bị
     $hardwareMap = @{}
 
     foreach ($drv in $oemDrivers) {
-        # Ưu tiên lấy tên hiển thị chuẩn từ Device Manager
         $matchedSigned = $signedDrivers | Where-Object { $_.InfName -eq $drv.Driver } | Select-Object -First 1
         
         if ($matchedSigned -and $matchedSigned.DeviceName) {
@@ -184,7 +190,6 @@ function Invoke-ExportDriverByHardwareSelect {
         $provider   = if ($drv.ProviderName) { $drv.ProviderName } else { "OEM" }
         $class      = if ($drv.ClassName)    { $drv.ClassName }    else { "Unknown" }
 
-        # Khóa nhận diện gộp nhóm: Tên thiết bị + Nhà sản xuất
         $groupKey = "$deviceName|$provider"
 
         if (-not $hardwareMap.ContainsKey($groupKey)) {
@@ -195,11 +200,9 @@ function Invoke-ExportDriverByHardwareSelect {
                 FolderPaths = [System.Collections.Generic.HashSet[string]]::new()
             }
         }
-        # Thêm thư mục driver vào danh sách của thiết bị đó (tự động loại bỏ thư mục trùng)
         [void]$hardwareMap[$groupKey].FolderPaths.Add($folderPath)
     }
 
-    # Chuyển danh sách đã gộp thành mảng có đánh STT
     $driverList = @()
     $idx = 1
     foreach ($key in ($hardwareMap.Keys | Sort-Object)) {
@@ -215,15 +218,27 @@ function Invoke-ExportDriverByHardwareSelect {
         $idx++
     }
 
-    # Hiển thị Menu bảng gọn gàng (Mỗi thiết bị chỉ xuất hiện 1 dòng)
-    Write-Host ("{0,-5} | {1,-42} | {2,-12} | {3,-15} | {4,-7}" -f "STT", "Ten Thiet Bi (Device Manager Name)", "Loai (Class)", "Nha San Xuat", "Folders") -ForegroundColor Yellow
-    Write-Host ("-" * 93) -ForegroundColor DarkGray
+    # =========================================================================
+    # CẤU HÌNH ĐỘ RỘNG BẢNG HIỂN THỊ (ĐÃ TĂNG KÍCH THƯỚC CÁC CỘT)
+    # Cột 0: STT (5) | Cột 1: Tên thiết bị (65) | Cột 2: Class (16) | Cột 3: Provider (22) | Cột 4: Folders (7)
+    # =========================================================================
+    Write-Host ("{0,-5} | {1,-65} | {2,-16} | {3,-22} | {4,-7}" -f "STT", "Ten Thiet Bi (Device Manager Name)", "Loai (Class)", "Nha San Xuat", "Folders") -ForegroundColor Yellow
+    Write-Host ("-" * 127) -ForegroundColor DarkGray
 
     foreach ($item in $driverList) {
+        # Cắt bớt tên nếu dài quá 65 ký tự
         $displayName = $item.DeviceName
-        if ($displayName.Length -gt 42) { $displayName = $displayName.Substring(0, 39) + "..." }
+        if ($displayName.Length -gt 65) { 
+            $displayName = $displayName.Substring(0, 62) + "..." 
+        }
+
+        # Cắt bớt tên nhà sản xuất nếu dài quá 22 ký tự
+        $providerName = $item.Provider
+        if ($providerName.Length -gt 22) { 
+            $providerName = $providerName.Substring(0, 19) + "..." 
+        }
         
-        Write-Host ("[{0,2}]  | {1,-42} | {2,-12} | {3,-15} | [{4} Fdr]" -f $item.Index, $displayName, $item.Class, $item.Provider, $item.FolderCount) -ForegroundColor Green
+        Write-Host ("[{0,2}]  | {1,-65} | {2,-16} | {3,-22} | [{4} Fdr]" -f $item.Index, $displayName, $item.Class, $providerName, $item.FolderCount) -ForegroundColor Green
     }
 
     Write-Host ""
@@ -253,7 +268,7 @@ function Invoke-ExportDriverByHardwareSelect {
     Write-Host ""
 
     foreach ($item in $targetItems) {
-        Write-Host "[*] Dang sao luu: [$($item.DeviceName)] (Gom $($item.FolderCount) thu muc liên quan)..." -ForegroundColor Yellow
+        Write-Host "[*] Dang sao luu: [$($item.DeviceName)] (Gom $($item.FolderCount) thu muc lien quan)..." -ForegroundColor Yellow
         
         foreach ($folderPath in $item.FolderPaths) {
             $folderLeafName = Split-Path -Path $folderPath -Leaf
