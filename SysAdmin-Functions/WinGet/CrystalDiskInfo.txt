@@ -1,0 +1,1 @@
+winget install --id XP8K4RGX25G3GM -e --accept-package-agreements --accept-source-agreements
