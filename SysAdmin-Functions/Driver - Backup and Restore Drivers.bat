@@ -132,18 +132,160 @@ function Invoke-DriverRestore {
 }
 
 # ------------------------------------------------------------------------------
+# [FLAG: SELECTIVE_BACKUP] - Quét phần cứng, gộp nhóm và trích xuất theo STT
+# ------------------------------------------------------------------------------
+function Invoke-ExportDriverByHardwareSelect {
+    Show-Banner
+    Write-Host "[+] Dang quet va gom nhom danh sach Driver OEM trong he thong..." -ForegroundColor Cyan
+    Write-Host ""
+
+    # Hàm nội bộ bóc tách tên từ file .inf (Tránh lỗi CommandNotFoundException)
+    function Script:Get-InfDeviceNameInternal {
+        param ([string]$InfFilePath)
+        if (-not (Test-Path -Path $InfFilePath)) { return $null }
+        $lines = Get-Content -Path $InfFilePath -ErrorAction SilentlyContinue
+        $inStrings = $false
+        foreach ($line in $lines) {
+            $trimmed = $line.Trim()
+            if ($trimmed -match '^\[Strings.*\]') { $inStrings = $true; continue }
+            if ($inStrings -and $trimmed -match '^\[.*\]') { break }
+            if ($inStrings -and $trimmed -match 'DeviceDesc\s*=\s*"([^"]+)"') { return $matches[1] }
+            if ($inStrings -and $trimmed -match '^\s*[\w\.\%]+\s*=\s*"([^"]+)"') { return $matches[1] }
+        }
+        return $null
+    }
+
+    # Lấy danh sách Driver OEM
+    $oemDrivers = Get-WindowsDriver -Online -ErrorAction SilentlyContinue
+    if (-not $oemDrivers) {
+        Write-Host "[!] Khong tim thay Driver OEM nao trong he thong!" -ForegroundColor Red
+        return
+    }
+
+    $signedDrivers = Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue
+
+    # Bảng băm (Hashtable) dùng để gộp các thư mục driver trùng tên thiết bị
+    $hardwareMap = @{}
+
+    foreach ($drv in $oemDrivers) {
+        # Ưu tiên lấy tên hiển thị chuẩn từ Device Manager
+        $matchedSigned = $signedDrivers | Where-Object { $_.InfName -eq $drv.Driver } | Select-Object -First 1
+        
+        if ($matchedSigned -and $matchedSigned.DeviceName) {
+            $deviceName = $matchedSigned.DeviceName
+        } else {
+            $deviceName = Get-InfDeviceNameInternal -InfFilePath $drv.OriginalFileName
+            if ([string]::IsNullOrWhiteSpace($deviceName)) {
+                $deviceName = "$($drv.ClassName) ($($drv.Driver))"
+            }
+        }
+
+        $folderPath = Split-Path -Path $drv.OriginalFileName -Parent
+        $provider   = if ($drv.ProviderName) { $drv.ProviderName } else { "OEM" }
+        $class      = if ($drv.ClassName)    { $drv.ClassName }    else { "Unknown" }
+
+        # Khóa nhận diện gộp nhóm: Tên thiết bị + Nhà sản xuất
+        $groupKey = "$deviceName|$provider"
+
+        if (-not $hardwareMap.ContainsKey($groupKey)) {
+            $hardwareMap[$groupKey] = [PSCustomObject]@{
+                DeviceName  = $deviceName
+                Provider    = $provider
+                Class       = $class
+                FolderPaths = [System.Collections.Generic.HashSet[string]]::new()
+            }
+        }
+        # Thêm thư mục driver vào danh sách của thiết bị đó (tự động loại bỏ thư mục trùng)
+        [void]$hardwareMap[$groupKey].FolderPaths.Add($folderPath)
+    }
+
+    # Chuyển danh sách đã gộp thành mảng có đánh STT
+    $driverList = @()
+    $idx = 1
+    foreach ($key in ($hardwareMap.Keys | Sort-Object)) {
+        $item = $hardwareMap[$key]
+        $driverList += [PSCustomObject]@{
+            Index       = $idx
+            DeviceName  = $item.DeviceName
+            Provider    = $item.Provider
+            Class       = $item.Class
+            FolderPaths = $item.FolderPaths
+            FolderCount = $item.FolderPaths.Count
+        }
+        $idx++
+    }
+
+    # Hiển thị Menu bảng gọn gàng (Mỗi thiết bị chỉ xuất hiện 1 dòng)
+    Write-Host ("{0,-5} | {1,-42} | {2,-12} | {3,-15} | {4,-7}" -f "STT", "Ten Thiet Bi (Device Manager Name)", "Loai (Class)", "Nha San Xuat", "Folders") -ForegroundColor Yellow
+    Write-Host ("-" * 93) -ForegroundColor DarkGray
+
+    foreach ($item in $driverList) {
+        $displayName = $item.DeviceName
+        if ($displayName.Length -gt 42) { $displayName = $displayName.Substring(0, 39) + "..." }
+        
+        Write-Host ("[{0,2}]  | {1,-42} | {2,-12} | {3,-15} | [{4} Fdr]" -f $item.Index, $displayName, $item.Class, $item.Provider, $item.FolderCount) -ForegroundColor Green
+    }
+
+    Write-Host ""
+    Write-Host "[i] Nhap STT thiet bi muon trich xuat (Chon nhieu phan cach bang dau phay, vd: 1,4,7)" -ForegroundColor Cyan
+    $selection = Read-Host "Nhap lua chon cua ban"
+
+    if ([string]::IsNullOrWhiteSpace($selection)) {
+        Write-Host "[!] Ban chua chon thiet bi nao. Huy thao tac." -ForegroundColor Red
+        return
+    }
+
+    $selectedIndices = $selection -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
+    $targetItems = $driverList | Where-Object { $selectedIndices -contains $_.Index }
+
+    if (-not $targetItems) {
+        Write-Host "[!] So thu tu chon khong hop le!" -ForegroundColor Red
+        return
+    }
+
+    $backupPath = "D:\DriverBackup_Selected"
+    if (-not (Test-Path -Path $backupPath)) {
+        New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+    }
+
+    Write-Host ""
+    Write-Host "[+] Bat dau trich xuat Driver cho $($targetItems.Count) thiet bi vao: $backupPath" -ForegroundColor Cyan
+    Write-Host ""
+
+    foreach ($item in $targetItems) {
+        Write-Host "[*] Dang sao luu: [$($item.DeviceName)] (Gom $($item.FolderCount) thu muc liên quan)..." -ForegroundColor Yellow
+        
+        foreach ($folderPath in $item.FolderPaths) {
+            $folderLeafName = Split-Path -Path $folderPath -Leaf
+            $destDir = Join-Path -Path $backupPath -ChildPath $folderLeafName
+
+            Try {
+                Copy-Item -Path $folderPath -Destination $destDir -Recurse -Force
+                Write-Host "    -> Copy thanh cong: $folderLeafName" -ForegroundColor Green
+            } Catch {
+                Write-Host "    -> Loi copy $folderLeafName : $_" -ForegroundColor Red
+            }
+        }
+    }
+
+    Write-Host ""
+    Write-Host "[OK] Da trich xuat xong toan bo Driver duoc chon vao: $backupPath" -ForegroundColor Green
+}
+
+# ------------------------------------------------------------------------------
 # [FLAG: MENU_SYSTEM] - Menu dieu huong va tuong tac
 # ------------------------------------------------------------------------------
 function Main-Menu {
     do {
         Show-Banner
         Write-Host "   === CHON CHUC NANG ===" -ForegroundColor White
-        Write-Host "   1. Backup Drivers  (Cong cu: DISM)" -ForegroundColor Green
-        Write-Host "   2. Restore Drivers (Cong cu: PnPUtil)" -ForegroundColor Green
+        Write-Host "   1. Backup TOAN BO Drivers (DISM - Toan bo thiet bi)" -ForegroundColor Green
+        Write-Host "   2. Restore Drivers        (PnPUtil)" -ForegroundColor Green
+        Write-Host "   3. Backup THEO HARDWARE   (Chon thiet bi qua Device Manager STT)" -ForegroundColor Yellow
         Write-Host "   0. Thoat" -ForegroundColor Red
         Write-Host ""
         
-        $choice = Read-Host "Nhap lua chon cua ban [0-2]"
+        $choice = Read-Host "Nhap lua chon cua ban [0-3]"
 
         switch ($choice) {
             '1' {
@@ -156,12 +298,17 @@ function Main-Menu {
                 Write-Host ""
                 Read-Host "Nhan Enter de tro ve Menu..."
             }
+            '3' {
+                Invoke-ExportDriverByHardwareSelect
+                Write-Host ""
+                Read-Host "Nhan Enter de tro ve Menu..."
+            }
             '0' {
                 Write-Host "[i] Dang thoat chuong trinh..." -ForegroundColor Cyan
                 return
             }
             default {
-                Write-Host "[!] Lua chon khong hop le. Vui long chon tu 0 den 2." -ForegroundColor Red
+                Write-Host "[!] Lua chon khong hop le." -ForegroundColor Red
                 Start-Sleep -Seconds 1
             }
         }
