@@ -59,51 +59,37 @@ While (!(Test-Path "$env:ProgramFiles\RustDesk\rustdesk.exe") -and ($Timeout -gt
 Start-Sleep -Seconds 3 # Cho Service khoi tao hoa nhap he thong
 Write-Host "   -> Cai dat hoan tat!" -ForegroundColor Green
 
-# 4. TẮT HOÀN TOÀN DỊCH VỤ RUSTDESK ĐỂ GIẢI PHÓNG KHÓA FILE
-Write-Host "`n[3/6] Dang dung Service RustDesk de chuan bi nap file config..." -ForegroundColor Yellow
-Stop-Service -Name "rustdesk" -Force -ErrorAction SilentlyContinue
-Get-Process -Name "rustdesk" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
-
-# 5. TẠO THƯ MỤC VÀ GHI ĐÈ FILE RustDesk2.toml VÀO TẤT CẢ VỊ TRÍ SYSTEM & USER
-Write-Host "`n[4/6] Dang nap IP Server va Key bao mat vao tat ca thu muc cau hinh..." -ForegroundColor Yellow
-$ConfigPaths = @(
-    "$env:APPDATA\RustDesk\config",
-    "$env:ProgramData\RustDesk\config",
-    "$env:windir\System32\config\systemprofile\AppData\Roaming\RustDesk\config"
-)
-
-$ConfigContent = @"
-[options]
-custom-rendezvous-server = '$ServerIP'
-key = '$ServerKey'
-api-server = ''
-"@
-
-ForEach ($Path in $ConfigPaths) {
-    If (!(Test-Path $Path)) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
-    Set-Content -Path "$Path\RustDesk2.toml" -Value $ConfigContent -Encoding UTF8 -Force
-}
-Write-Host "   -> Da ghi file RustDesk2.toml thanh cong!" -ForegroundColor Green
-
-<#
-# 6. THIẾT LẬP MẬT KHẨU CỐ ĐỊNH (PERMANENT PASSWORD)
-Write-Host "`n[5/6] Dang thiet lap Mat khau co dinh..." -ForegroundColor Yellow
+# 4. NẠP IP SERVER VÀ KEY BẰNG CÚ PHÁP CLI NATIVE CỦA RUSTDESK 1.5.1
+Write-Host "`n[3/5] Dang nap IP Server va Key qua lenh CLI --config..." -ForegroundColor Yellow
 $RustDeskExe = "$env:ProgramFiles\RustDesk\rustdesk.exe"
 
 If (Test-Path $RustDeskExe) {
+    # Cú pháp CLI chuẩn chính thức của RustDesk 1.5.1
+    $ConfigArg = "--config host=$ServerIP,key=$ServerKey"
+    Start-Process -FilePath $RustDeskExe -ArgumentList $ConfigArg -Wait -WindowStyle Hidden
+    Write-Host "   -> Da nap Server va Key qua CLI thanh cong!" -ForegroundColor Green
+} Else {
+    Write-Host "Loi: Khong tim thấy rustdesk.exe de nap config!" -ForegroundColor Red
+}
+
+<#
+# 5. THIẾT LẬP MẬT KHẨU CỐ ĐỊNH (PERMANENT PASSWORD)
+Write-Host "`n[4/5] Dang thiet lap Mat khau co dinh..." -ForegroundColor Yellow
+If (Test-Path $RustDeskExe) {
     Start-Process -FilePath $RustDeskExe -ArgumentList "--password $PermanentPassword" -Wait -WindowStyle Hidden
     Write-Host "   -> Da thiet lap mat khau co dinh!" -ForegroundColor Green
-} Else {
-    Write-Host "Canh bao: Khong tim thay rustdesk.exe de dat mat khau!" -ForegroundColor Red
 }
 #>
 
-# 7. DỌN DẸP VÀ KÍCH HOẠT LẠI DỊCH VỤ RUSTDESK
-Write-Host "`n[6/6] Dang dion dep file temp va khoi chay lai Service RustDesk..." -ForegroundColor Yellow
+# 6. DỌN DẸP, RESTART SERVICE VÀ LẤY RUSTDESK ID
+Write-Host "`n[5/5] Dang dion dep file temp va khoi chay lai Service RustDesk..." -ForegroundColor Yellow
 If (Test-Path $InstallerPath) { Remove-Item $InstallerPath -Force }
-Start-Service -Name "rustdesk" -ErrorAction SilentlyContinue
+Restart-Service -Name "rustdesk" -ErrorAction SilentlyContinue
+
+# Gọi lệnh lấy ID của RustDesk
+$RustDeskID = & "$RustDeskExe" --get-id
 
 Write-Host "`n======================================================================" -ForegroundColor Green
 Write-Host " HOAN TAT! IP Server, Key va Mat khau co dinh da duoc nap thanh cong." -ForegroundColor Green
+Write-Host " RustDesk ID cua may nay: $RustDeskID" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Green
