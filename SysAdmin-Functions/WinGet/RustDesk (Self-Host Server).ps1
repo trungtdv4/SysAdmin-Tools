@@ -1,21 +1,31 @@
 # ==============================================================================
-# Script Name: RustDesk (Self-Host Server).ps1
-# Author     : Copyright (c) 2026 Trung Nguyen (trungnm.work@gmail.com). All rights reserved.
+# Script Name: RustDesk (Self-Host Server)
 # ==============================================================================
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-Write-Host "===================================================" -ForegroundColor Cyan
-Write-Host "   RUSTDESK AUTOMATED INSTALLER & CONFIGURATION    " -ForegroundColor Cyan
-Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host "==================================================================================" -ForegroundColor Cyan
+Write-Host "                    RUSTDESK AUTOMATED INSTALLER & CONFIGURATION                  " -ForegroundColor Cyan
+Write-Host "  Copyright (c) 2026 Trung Nguyen (trungnm.work@gmail.com). All rights reserved.  " -ForegroundColor Cyan
+Write-Host "==================================================================================" -ForegroundColor Cyan
 
 # 1. KHAI BÁO CẤU HÌNH SERVER, KEY VÀ MẬT KHẨU CỐ ĐỊNH
 $ServerIP          = "115.73.216.231"
 $ServerKey         = "05sFW4xyJ6gDMwQ99HCPHVoj5ALXzWj2p1kUttraEz0="
-# $PermanentPassword = "MatKhauCoDinhCuaBan123" # Thay doi mat khau mong muon tại day
+# $PermanentPassword = "YourPasswordHere" # Thay doi mat khau mong muon tại day
+
+<#
+#-------------------------------------------------------------------------------------------------------
+# Nếu dùng cách cài bằng WinGet thì bỏ BƯỚC 2 và 3 ở dưới
+# Hiện tại không thể cài bằng WinGet được vì RustDesk đã bị tháo khỏi WinGet do có vấn đề về bảo mật.
+#-------------------------------------------------------------------------------------------------------
+# 2. CÀI ĐẶT RUSTDESK BẰNG WINGET (SILENT INSTALL)
+Write-Host "`nDang tai va cai dat RustDesk qua WinGet (Silent)..." -ForegroundColor Yellow
+winget install --id RustDesk.RustDesk -e --silent --accept-package-agreements --accept-source-agreements
+#>
 
 # 2. TẢI FILE CÀI ĐẶT TỪ GITHUB RELEASES (BỎ QUA WINGET)
-$DownloadUrl   = "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.exe"
-$InstallerPath = "$env:TEMP\rustdesk-1.5.1-x86_64.exe"
+$DownloadUrl   = "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.exe" #Doi ten file va duong dan khi co version moi.
+$InstallerPath = "$env:TEMP\rustdesk-1.5.1-x86_64.exe" #Doi ten file giong hang tren.
 
 Write-Host "`n[1/5] Dang tai file cai dat RustDesk moi nhat tu GitHub..." -ForegroundColor Yellow
 Try {
@@ -38,42 +48,37 @@ While (!(Test-Path "$env:ProgramFiles\RustDesk\rustdesk.exe") -and ($Timeout -gt
 Start-Sleep -Seconds 3 # Cho Service khoi tao hoa nhap he thong
 Write-Host "   -> Cai dat hoan tat!" -ForegroundColor Green
 
-# 4. TẠO THƯ MỤC VÀ NẠP CẤU HÌNH SERVER/KEY (RustDesk2.toml)
-Write-Host "`n[3/5] Dang tao file cau hinh Server va Key..." -ForegroundColor Yellow
-$ConfigDirUser   = "$env:APPDATA\RustDesk\config"
-$ConfigDirSystem = "$env:ProgramData\RustDesk\config"
+# 4. NẠP IP SERVER VÀ KEY BẰNG CÚ PHÁP CLI NATIVE CỦA RUSTDESK 1.5.1 TRỞ LÊN.
+Write-Host "`n[3/5] Dang nap IP Server va Key qua lenh CLI --config..." -ForegroundColor Yellow
+$RustDeskExe = "$env:ProgramFiles\RustDesk\rustdesk.exe"
 
-If (!(Test-Path $ConfigDirUser))   { New-Item -ItemType Directory -Force -Path $ConfigDirUser | Out-Null }
-If (!(Test-Path $ConfigDirSystem)) { New-Item -ItemType Directory -Force -Path $ConfigDirSystem | Out-Null }
-
-$ConfigContent = @"
-[options]
-custom-rendezvous-server = '$ServerIP'
-key = '$ServerKey'
-api-server = ''
-"@
-
-Set-Content -Path "$ConfigDirUser\RustDesk2.toml" -Value $ConfigContent -Encoding UTF8
-Set-Content -Path "$ConfigDirSystem\RustDesk2.toml" -Value $ConfigContent -Encoding UTF8
+If (Test-Path $RustDeskExe) {
+    # Cú pháp CLI chuẩn chính thức của RustDesk 1.5.1
+    $ConfigArg = "--config host=$ServerIP,key=$ServerKey"
+    Start-Process -FilePath $RustDeskExe -ArgumentList $ConfigArg -Wait -WindowStyle Hidden
+    Write-Host "   -> Da nap Server va Key qua CLI thanh cong!" -ForegroundColor Green
+} Else {
+    Write-Host "Loi: Khong tim thấy rustdesk.exe de nap config!" -ForegroundColor Red
+}
 
 <#
 # 5. THIẾT LẬP MẬT KHẨU CỐ ĐỊNH (PERMANENT PASSWORD)
 Write-Host "`n[4/5] Dang thiet lap Mat khau co dinh..." -ForegroundColor Yellow
-$RustDeskExe = "$env:ProgramFiles\RustDesk\rustdesk.exe"
-
 If (Test-Path $RustDeskExe) {
     Start-Process -FilePath $RustDeskExe -ArgumentList "--password $PermanentPassword" -Wait -WindowStyle Hidden
     Write-Host "   -> Da thiet lap mat khau co dinh!" -ForegroundColor Green
-} Else {
-    Write-Host "Canh bao: Khong tim thay rustdesk.exe de dat mat khau!" -ForegroundColor Red
 }
 #>
 
-# 6. DỌN DẸP VÀ KHỞI ĐỘNG LẠI DỊCH VỤ RUSTDESK
-Write-Host "`n[5/5] Dang dion dep file temp va restart dich vu RustDesk..." -ForegroundColor Yellow
+# 6. DỌN DẸP, RESTART SERVICE VÀ LẤY RUSTDESK ID
+Write-Host "`n[5/5] Dang don dep file temp va khoi chay lai Service RustDesk..." -ForegroundColor Yellow
 If (Test-Path $InstallerPath) { Remove-Item $InstallerPath -Force }
 Restart-Service -Name "rustdesk" -ErrorAction SilentlyContinue
 
+# Gọi lệnh lấy ID của RustDesk
+$RustDeskID = & "$RustDeskExe" --get-id
+
 Write-Host "`n======================================================================" -ForegroundColor Green
-Write-Host " HOAN TAT! Da cai dat ngam tu GitHub va nap cau hinh thanh cong." -ForegroundColor Green
+Write-Host " HOAN TAT! IP Server, Key va Mat khau co dinh da duoc nap thanh cong." -ForegroundColor Green
+Write-Host " RustDesk ID cua may nay: $RustDeskID" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Green
