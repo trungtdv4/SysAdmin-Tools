@@ -67,7 +67,45 @@ while ($true) {
         Write-Host ""
         Write-Host ">>> Executing Module: $($scriptFiles[[int]$selection - 1].BaseName) <<<" -ForegroundColor Green
         
-        & $selectedScript
+        $ext = [System.IO.Path]::GetExtension($selectedScript).ToLower()
+
+        if ($ext -eq '.bat' -or $ext -eq '.cmd') {
+            # Kiem tra xem co phai file hybrid Bat/PS1 khong (co dong <# : o dau)
+            $firstLine = Get-Content -Path $selectedScript -TotalCount 1 -ErrorAction SilentlyContinue
+            if ($firstLine -and $firstLine.TrimStart() -match '^<#\s*:') {
+                # Day la file hybrid: extract phan PowerShell (tu sau dong "#>") va chay trong process moi
+                # KHONG goi bat truc tiep vi bat header se chay lai vong lap tu-elevate vo han
+                $allLines   = Get-Content -Path $selectedScript -Encoding UTF8 -ErrorAction SilentlyContinue
+                $psStartIdx = -1
+                for ($li = 0; $li -lt $allLines.Count; $li++) {
+                    if ($allLines[$li].TrimEnd() -eq '#>') {
+                        $psStartIdx = $li + 1
+                        break
+                    }
+                }
+                if ($psStartIdx -ge 0 -and $psStartIdx -lt $allLines.Count) {
+                    $psContent = ($allLines[$psStartIdx..($allLines.Count - 1)]) -join "`r`n"
+                    $tmpFile   = [System.IO.Path]::Combine($env:TEMP, "sat_hybrid_$([System.IO.Path]::GetRandomFileName()).ps1")
+                    Set-Content -Path $tmpFile -Value $psContent -Encoding UTF8 -Force
+                    try {
+                        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tmpFile
+                    } finally {
+                        Remove-Item -Path $tmpFile -Force -ErrorAction SilentlyContinue
+                    }
+                } else {
+                    # Khong tim thay ranh gioi PS, chay bat qua cmd de tranh loi
+                    & cmd.exe /c `"$selectedScript`"
+                }
+            } else {
+                # Bat thong thuong (khong hybrid): chay qua cmd
+                & cmd.exe /c `"$selectedScript`"
+            }
+        } else {
+            # File .ps1: chay qua powershell.exe moi doc lap
+            # KHONG dung "& $selectedScript" inline vi loi tu script con se propagate
+            # len SysAdmin-Tools.ps1 va co the crash toan bo session (cua so tat ngay)
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $selectedScript
+        }
     } else {
         Write-Host "[!] Invalid selection. Please try again!" -ForegroundColor Red
         Start-Sleep -Seconds 1
