@@ -1,40 +1,7 @@
-<# :
-@cls
-@echo off
-chcp 65001 >nul
-title System - SMB Share Manager
-
-:: 1. Kiem tra quyen Administrator bang fltmc (An toan 100% moi ban Windows)
-fltmc >nul 2>&1
-if %errorLevel% neq 0 (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c \"\"%~f0\"\"' -Verb RunAs"
-    exit /b
-)
-
-:: 2. Khoi tao duong dan file .ps1 tam trong thu muc Temp
-set "ps1_temp=%temp%\run_ps1_%random%.ps1"
-copy /y "%~f0" "%ps1_temp%" >nul
-
-:: 3. Goi PowerShell thuc thi
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ps1_temp%"
-del "%ps1_temp%" >nul 2>&1
-exit /b
-#>
-
-# =========================================================
-# LOI POWERSHELL CUA BAN BAT DAU TU DAY
-# =========================================================
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-# Ep nap Module SMB & Khoi tao CIM Provider de tranh crash tren may moi
-try {
-    Import-Module SmbShare -ErrorAction SilentlyContinue
-} catch {}
-
 function Show-Header {
     Clear-Host
     Write-Host "===================================================================================" -ForegroundColor Cyan
-    Write-Host "                              System - SMB Share   " -ForegroundColor Yellow
+    Write-Host "                            System - SMB Share Manager   " -ForegroundColor Yellow
     Write-Host "   Copyright (c) 2026 Trung Nguyen (trungnm.work@gmail.com). All rights reserved.   " -ForegroundColor Yellow
     Write-Host "             Licensed under the GNU General Public License v3.0 (GPLv3).   " -ForegroundColor Yellow
     Write-Host "===================================================================================" -ForegroundColor Cyan
@@ -47,7 +14,7 @@ function Show-Header {
 function Get-SMBSigningStatus {
     Write-Host "[*] Dang kiem tra cau hinh SMB Client hien tai..." -ForegroundColor Cyan
     try {
-        $smbConfig = Get-SmbClientConfiguration -ErrorAction Stop
+        $smbConfig = Get-SmbClientConfiguration
         Write-Host "-------------------------------------------------------------------" -ForegroundColor Gray
         Write-Host "  - RequireSecuritySignature (Bat buoc chu ky so) : " -NoNewline
         if ($smbConfig.RequireSecuritySignature) {
@@ -72,7 +39,7 @@ function Get-SMBSigningStatus {
         Write-Host "-------------------------------------------------------------------" -ForegroundColor Gray
     }
     catch {
-        Write-Host "[!] Khong the lay thong tin SMB Client (Dich vu WinRM/CIM chua san sang): $_" -ForegroundColor Red
+        Write-Host "[!] Loi khi lay thong tin cau hinh SMB Client: $_" -ForegroundColor Red
     }
 }
 
@@ -87,13 +54,13 @@ function Set-SMBSigningState {
     try {
         if ($Enable) {
             Write-Host "[*] Dang thuc hien BAT (Enable) SMB Signing..." -ForegroundColor Yellow
-            Set-SmbClientConfiguration -RequireSecuritySignature $True -Force -ErrorAction Stop
+            Set-SmbClientConfiguration -RequireSecuritySignature $True -Force
             Write-Host "[✓] Da BAT thanh cong SMB Signing (RequireSecuritySignature = True)." -ForegroundColor Green
         } else {
             Write-Host "[*] Dang thuc hien TAT (Disable) SMB Signing..." -ForegroundColor Yellow
-            Set-SmbClientConfiguration -RequireSecuritySignature $False -Force -ErrorAction Stop
+            Set-SmbClientConfiguration -RequireSecuritySignature $False -Force
             Write-Host "[✓] Da TAT thanh cong SMB Signing (RequireSecuritySignature = False)." -ForegroundColor Green
-            Write-Host "[i] Khac phuc ma loi 0xc05d0003 khi truy cap thu muc chia se / NAS / Server cu." -ForegroundColor Cyan
+            Write-Host "[i] Khac phuc ma loi 0xc05d0003 khi truy cap thu muc chia se / NAS / Server." -ForegroundColor Cyan
         }
     }
     catch {
@@ -110,6 +77,7 @@ function Menu-SMBSigning {
         Write-Host ">>> MENU CON 1: DISABLE OR ENABLE SMB SIGNING <<<" -ForegroundColor Green
         Write-Host ""
         
+        # Kiem tra va hien thi trang thai hien tai
         Get-SMBSigningStatus
         Write-Host ""
         
@@ -153,7 +121,7 @@ function Menu-Main {
         Write-Host "=== QUAN LY CAU HINH SMB SHARE & BAO MAT SYSTEM ===" -ForegroundColor White
         Write-Host ""
         Write-Host "   [1] Disable or Enable SMB Signing" -ForegroundColor Green
-        Write-Host "   [0] Quay lai / Thoat" -ForegroundColor Red
+        Write-Host "   [0] Thoat chuong trinh" -ForegroundColor Red
         Write-Host ""
         
         $mainChoice = Read-Host " Nhap lua chon cua ban [0-1]"
@@ -163,9 +131,9 @@ function Menu-Main {
             }
             "0" {
                 Write-Host ""
-                Write-Host "[*] Da thoat Menu SMB Share." -ForegroundColor Cyan
-                Start-Sleep -Milliseconds 500
-                return # Tra quyen dieu khien ve cho Master Menu, khong dung exit
+                Write-Host "[*] Dang thoat chuong trinh... Cam on ban da su dung!" -ForegroundColor Cyan
+                Start-Sleep -Seconds 1
+                exit
             }
             default {
                 Write-Host "[!] Lua chon khong hop le, vui long chon lai." -ForegroundColor Red
