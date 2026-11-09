@@ -2,7 +2,7 @@
 @cls
 @echo off
 chcp 65001 >nul
-title System - SMB Share
+title System - SMB_Share_Manager
 
 :: 1. Kiểm tra quyền Administrator bằng fltmc (Chuẩn 100% mọi bản Windows, không phụ thuộc Service)
 fltmc >nul 2>&1
