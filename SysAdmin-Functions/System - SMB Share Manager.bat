@@ -2,25 +2,25 @@
 @cls
 @echo off
 chcp 65001 >nul
-title System - SMB_Share_Manager
+title System - SMB Share
 
-:: 1. Kiểm tra quyền Administrator bằng fltmc (Chuẩn 100% mọi bản Windows, không phụ thuộc Service)
-fltmc >nul 2>&1
+:: 1. Kiem tra va yeu cau quyen Administrator
+net session >nul 2>&1
 if %errorLevel% neq 0 (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c \"\"%~f0\"\"' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
-:: 2. Khởi tạo đường dẫn file .ps1 tạm trong thư mục Temp
+:: 2. Khoi tao duong dan file .ps1 tam trong thu muc Temp
 set "ps1_temp=%temp%\run_ps1_%random%.ps1"
 
-:: 3. Copy toàn bộ nội dung file .bat này thành file .ps1
+:: 3. Copy toan bo noi dung file .bat nay thanh file .ps1
 copy /y "%~f0" "%ps1_temp%" >nul
 
-:: 4. Gọi PowerShell thực thi file .ps1
+:: 4. Goi PowerShell thuc thi file .ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ps1_temp%"
 
-:: 5. Xóa file tạm sau khi chạy xong
+:: 5. Xoa file tam sau khi chay xong
 del "%ps1_temp%" >nul 2>&1
 
 exit /b
