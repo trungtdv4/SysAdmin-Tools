@@ -1,0 +1,1 @@
+winget install --id XP9CS6FHQ00B8J -e --accept-package-agreements --accept-source-agreements
