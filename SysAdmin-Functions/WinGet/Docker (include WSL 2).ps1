@@ -27,7 +27,7 @@ Function Invoke-DockerAndWSL2Setup {
         $WslCheck = wsl --status 2>&1
         If ($LASTEXITCODE -eq 0) {
             $HasWSL = $True
-            Write-Host "   -> WSL: Da duoc cai dat." -ForegroundColor Green
+            Write-Host "   -> WSL: Da duoc cai dat ($WslCheck)." -ForegroundColor Green
         } Else {
             Write-Host "   -> WSL: Chua cai dat hoac chua kich hoat." -ForegroundColor DarkYellow
         }
