@@ -1,4 +1,4 @@
-# Network \- Reset Network Setting \- Note
+# Network \- Reset Network Setting
 
 Dưới đây là file `Network - Reset Network Setting.bat` được thiết kế theo chuẩn Polyglot \(bọc PowerShell bên trong Batch script\).
 
