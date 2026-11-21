@@ -1,7 +1,7 @@
 <# :
 @cls
 @echo off
-title Thay doi Default Gateway & Restart Card Mang
+title Thay doi Default Gateway and Restart Card Mang
 
 :: 1. Kiem tra va yeu cau quyen Administrator
 net session >nul 2>&1
