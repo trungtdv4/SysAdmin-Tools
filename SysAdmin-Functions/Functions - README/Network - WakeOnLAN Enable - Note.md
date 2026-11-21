@@ -1,11 +1,11 @@
-# WakeOnLAN\-Enable \- Note
+# WakeOnLAN\-Enable
 
 ### Các tính năng script sẽ tự động kích hoạt:
 
 1. **Yêu cầu quyền Administrator**: Tự động tự nâng quyền Run as Administrator khi khởi chạy.
 2. **Cấu hình Card mạng \(NIC Adapter properties\)**:
-    - Bật `Magic Packet` \(`*WakeOnMagicPacket` = Enabled\).
-    - Bật `Pattern Match` \(`*WakeOnPattern` = Enabled\).
+    - Bật `Magic Packet` \(`WakeOnMagicPacket` = Enabled\).
+    - Bật `Pattern Match` \(`WakeOnPattern` = Enabled\).
     - Bật tính năng nhận lệnh WoL khi máy đang ở trạng thái tắt S5/Energy Efficient Ethernet.
 3. **Cấu hình Quản lý Nguồn điện Card mạng \(Power Management\)**:
     - Cho phép thiết bị bật máy \(`Allow Device to Wake the Computer`\).
