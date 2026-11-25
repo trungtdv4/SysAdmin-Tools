@@ -1,0 +1,1 @@
+winget install --id 9N0866FS04W8 -e

@@ -1,0 +1,1 @@
+winget install --id Synology.DriveClient -e --accept-package-agreements --accept-source-agreements
