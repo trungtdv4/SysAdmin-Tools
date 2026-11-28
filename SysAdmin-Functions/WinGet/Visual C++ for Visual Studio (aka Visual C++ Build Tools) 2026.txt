@@ -1,0 +1,1 @@
+winget install -e --id Microsoft.VisualStudio.BuildTools --silent --accept-package-agreements --accept-source-agreements

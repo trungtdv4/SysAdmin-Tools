@@ -1,0 +1,1 @@
+winget install --id Microsoft.OneDrive -e --accept-package-agreements --accept-source-agreements

@@ -1,0 +1,1 @@
+winget install --id Microsoft.DotNet.DesktopRuntime.6 -e --silent --accept-package-agreements --accept-source-agreements

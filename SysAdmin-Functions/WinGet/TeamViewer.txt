@@ -1,0 +1,1 @@
+winget install -e --id TeamViewer.TeamViewer --accept-package-agreements --accept-source-agreements

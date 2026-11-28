@@ -1,0 +1,1 @@
+winget install -e --id Termius.Termius --accept-package-agreements --accept-source-agreements

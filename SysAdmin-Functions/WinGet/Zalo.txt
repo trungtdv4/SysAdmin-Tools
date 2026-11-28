@@ -1,0 +1,1 @@
+winget install --id VNGCorp.Zalo -e --accept-package-agreements --accept-source-agreements

@@ -1,0 +1,1 @@
+winget install -e --id Microsoft.DotNet.Framework.DeveloperPack_4 --silent --accept-package-agreements --accept-source-agreements
